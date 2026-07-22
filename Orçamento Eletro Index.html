@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="pt-BR" style="margin:0;padding:0;">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Comparação de Orçamentos</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { font-family: 'Inter', sans-serif; }
+  :root {
+    --bg: #f1f5f9; --card: #ffffff; --text: #0f172a; --muted: #64748b;
+    --primary: #2563eb; --primary-soft: rgba(37,99,235,.1);
+    --success: #16a34a; --warning: #ca8a04; --danger: #dc2626;
+    --border: rgba(15,23,42,.08); --sidebar: #0f172a; --sidebar-text: #cbd5e1;
+  }
+  .dark {
+    --bg: #0b1220; --card: #111827; --text: #e5e7eb; --muted: #94a3b8;
+    --primary: #3b82f6; --primary-soft: rgba(59,130,246,.15);
+    --border: rgba(148,163,184,.15); --sidebar: #020617; --sidebar-text: #94a3b8;
+  }
+  body { background: var(--bg); color: var(--text); transition: all .2s; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .sidebar { background: var(--sidebar); color: var(--sidebar-text); }
+  .nav-item { transition: all .15s; border-radius: 8px; }
+  .nav-item:hover { background: rgba(255,255,255,.05); }
+  .nav-item.active { background: var(--primary); color: white; }
+  .input, select, textarea {
+    background: var(--card); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 10px 12px; width: 100%; font-size: 14px; transition: all .15s;
+  }
+  .input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  label { font-size: 13px; font-weight: 500; color: var(--muted); display: block; margin-bottom: 6px; }
+  .btn { padding: 10px 16px; border-radius: 8px; font-weight: 500; font-size: 14px; transition: all .15s; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border: none; }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+  .btn-success { background: var(--success); color: white; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-warning { background: var(--warning); color: white; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 12px; font-weight: 600; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--border); background: var(--bg); }
+  td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:hover td { background: var(--primary-soft); }
+  .best { background: rgba(22,163,74,.08) !important; }
+  .second { background: rgba(202,138,4,.08) !important; }
+  .badge { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; display: inline-block; }
+  .badge-movel { background: rgba(139,92,246,.12); color: #7c3aed; }
+  .badge-eletro { background: rgba(14,165,233,.12); color: #0284c7; }
+  .badge-best { background: rgba(22,163,74,.15); color: var(--success); }
+  .badge-second { background: rgba(202,138,4,.15); color: var(--warning); }
+  .metric-card { transition: transform .2s, box-shadow .2s; }
+  .metric-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,.08); }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+  .modal-overlay.hidden { display: none !important; }
+  .modal { background: var(--card); border-radius: 16px; width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,.5); }
+  .page { display: none; }
+  .page.active { display: block; }
+  .link { color: var(--primary); text-decoration: none; }
+  .link:hover { text-decoration: underline; }
+  .close-btn { cursor: pointer; user-select: none; pointer-events: auto; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  @media (max-width: 768px) {
+    .sidebar-mobile { transform: translateX(-100%); transition: transform .3s; position: fixed; z-index: 50; height: 100vh; }
+    .sidebar-mobile.open { transform: translateX(0); }
+  }
+</style>
+</head>
+<body class="min-h-screen">
+
+<div class="flex min-h-screen">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar w-64 flex-shrink-0 p-5 flex flex-col sidebar-mobile">
+    <div class="flex items-center gap-3 mb-10">
+      <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white">
+        <i class="fas fa-chart-line"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-white text-lg">OrçaMax</h1>
+        <p class="text-xs opacity-60">Comparador Inteligente</p>
+      </div>
+    </div>
+    <nav class="space-y-1 flex-1">
+      <a class="nav-item active flex items-center gap-3 px-4 py-3 cursor-pointer" data-page="dashboard">
+        <i class="fas fa-gauge-high w-5"></i> Dashboard
+      </a>
+      <a class="nav-item flex items-center gap-3 px-4 py-3 cursor-pointer" data-page="produtos">
+        <i class="fas fa-box w-5"></i> Produtos
+      </a>
+      <a class="nav-item flex items-center gap-3 px-4 py-3 cursor-pointer" data-page="orcamentos">
+        <i class="fas fa-file-invoice-dollar w-5"></i> Orçamentos
+      </a>
+      <a class="nav-item flex items-center gap-3 px-4 py-3 cursor-pointer" data-page="comparacao">
+        <i class="fas fa-scale-balanced w-5"></i> Comparação
+      </a>
+      <a class="nav-item flex items-center gap-3 px-4 py-3 cursor-pointer" data-page="relatorios">
+        <i class="fas fa-file-pdf w-5"></i> Relatórios
+      </a>
+    </nav>
+    <div class="pt-4 border-t border-white/10 space-y-2">
+      <button id="themeToggle" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-left">
+        <i class="fas fa-moon w-5" id="themeIcon"></i> <span id="themeText">Tema Escuro</span>
+      </button>
+      <button onclick="loadDemo()" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-left">
+        <i class="fas fa-play-circle w-5"></i> Carregar Exemplo
+      </button>
+      <button onclick="clearAll()" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-left text-red-400 hover:text-red-300">
+        <i class="fas fa-trash w-5"></i> Limpar Dados
+      </button>
+    </div>
+  </aside>
+
+  <!-- Overlay mobile -->
+  <div id="overlay" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" onclick="toggleSidebar()"></div>
+
+  <!-- Main -->
+  <main class="flex-1 min-w-0">
+    <!-- Topbar -->
+    <header class="card rounded-none border-x-0 border-t-0 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+      <button class="md:hidden btn btn-secondary" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+      <h2 id="pageTitle" class="text-xl font-bold hidden md:block">Dashboard</h2>
+      <div class="flex items-center gap-2 ml-auto">
+        <span class="text-xs text-slate-500"><i class="fas fa-database mr-1"></i> Dados salvos localmente</span>
+      </div>
+    </header>
+
+    <div class="p-6">
+
+      <!-- DASHBOARD -->
+      <section id="page-dashboard" class="page active">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div class="card metric-card p-5">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Total Geral</span>
+              <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <i class="fas fa-coins"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-bold" id="kpi-total">R$ 0,00</div>
+            <div class="text-xs text-slate-500 mt-1">Soma de todos os orçamentos</div>
+          </div>
+          <div class="card metric-card p-5">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Melhor Orçamento</span>
+              <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
+                <i class="fas fa-trophy"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-bold text-green-600" id="kpi-melhor">R$ 0,00</div>
+            <div class="text-xs text-slate-500 mt-1">Total com as melhores ofertas</div>
+          </div>
+          <div class="card metric-card p-5">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Economia</span>
+              <div class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <i class="fas fa-piggy-bank"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-bold text-amber-600" id="kpi-economia">R$ 0,00</div>
+            <div class="text-xs text-slate-500 mt-1">Diferença vs piores preços</div>
+          </div>
+          <div class="card metric-card p-5">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Lojas / Produtos</span>
+              <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                <i class="fas fa-store"></i>
+              </div>
+            </div>
+            <div class="text-2xl font-bold"><span id="kpi-lojas">0</span> / <span id="kpi-produtos">0</span></div>
+            <div class="text-xs text-slate-500 mt-1">Lojas consultadas · Produtos</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="card p-6">
+            <h3 class="font-semibold mb-4"><i class="fas fa-chart-bar mr-2 text-blue-600"></i> Comparativo por Produto</h3>
+            <div id="chart1" style="height:340px"></div>
+          </div>
+          <div class="card p-6">
+            <h3 class="font-semibold mb-4"><i class="fas fa-chart-pie mr-2 text-purple-600"></i> Distribuição por Categoria</h3>
+            <div id="chart2" style="height:340px"></div>
+          </div>
+        </div>
+
+        <div class="card p-6 mt-6">
+          <h3 class="font-semibold mb-4"><i class="fas fa-star mr-2 text-amber-500"></i> Melhores Ofertas</h3>
+          <div id="melhoresOfertas" class="overflow-x-auto"></div>
+        </div>
+      </section>
+
+      <!-- PRODUTOS -->
+      <section id="page-produtos" class="page">
+        <div class="flex flex-wrap gap-3 mb-5">
+          <button class="btn btn-primary" onclick="openModalProduto()"><i class="fas fa-plus"></i> Novo Produto</button>
+        </div>
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produto</th><th>Categoria</th><th>Marca</th><th>Modelo</th><th>Qtd</th><th>Orçamentos</th><th>Melhor Preço</th><th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaProdutos"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ORÇAMENTOS -->
+      <section id="page-orcamentos" class="page">
+        <div class="flex flex-wrap gap-3 mb-5 items-center">
+          <select id="selProdutoOrc" class="input w-auto min-w-[220px]" onchange="renderOrcamentos()"></select>
+          <button class="btn btn-primary" onclick="openModalOrcamento()"><i class="fas fa-plus"></i> Novo Orçamento</button>
+        </div>
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produto</th><th>Loja</th><th>Link</th><th>À Vista</th><th>Parcelado</th><th>Parcelas</th><th>Frete</th><th>Total</th><th>Prazo</th><th>Data</th><th>Ranking</th><th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaOrcamentos"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- COMPARAÇÃO -->
+      <section id="page-comparacao" class="page">
+        <div class="card p-5 mb-5">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label>Buscar Produto</label>
+              <input class="input" id="filtroNome" placeholder="Digite o nome..." oninput="renderComparacao()">
+            </div>
+            <div>
+              <label>Categoria</label>
+              <select class="input" id="filtroCat" onchange="renderComparacao()">
+                <option value="">Todas</option>
+                <option value="Móvel">Móvel</option>
+                <option value="Eletrodoméstico">Eletrodoméstico</option>
+              </select>
+            </div>
+            <div>
+              <label>Loja</label>
+              <select class="input" id="filtroLoja" onchange="renderComparacao()"><option value="">Todas</option></select>
+            </div>
+            <div>
+              <label>Faixa de Preço Máx (R$)</label>
+              <input type="number" class="input" id="filtroPreco" placeholder="Ex: 5000" oninput="renderComparacao()">
+            </div>
+          </div>
+        </div>
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produto</th><th>Categoria</th><th>Loja</th><th>Link</th>
+                  <th class="text-right">À Vista</th><th class="text-right">Parcelado Total</th>
+                  <th class="text-center">Parcelas</th><th class="text-right">Frete</th>
+                  <th class="text-right font-bold">Total Final</th><th>Prazo</th><th>Data</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaComparacao"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- RELATÓRIOS -->
+      <section id="page-relatorios" class="page">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="card p-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 text-2xl mx-auto mb-4">
+              <i class="fas fa-file-pdf"></i>
+            </div>
+            <h3 class="font-semibold mb-2">PDF Completo</h3>
+            <p class="text-sm text-slate-500 mb-4">Todos os orçamentos de todos os produtos.</p>
+            <button class="btn btn-danger w-full justify-center" onclick="gerarPDF(false)"><i class="fas fa-download"></i> Gerar PDF</button>
+          </div>
+          <div class="card p-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 text-2xl mx-auto mb-4">
+              <i class="fas fa-award"></i>
+            </div>
+            <h3 class="font-semibold mb-2">PDF Melhores Opções</h3>
+            <p class="text-sm text-slate-500 mb-4">Apenas a melhor oferta por produto.</p>
+            <button class="btn btn-success w-full justify-center" onclick="gerarPDF(true)"><i class="fas fa-download"></i> Gerar PDF</button>
+          </div>
+          <div class="card p-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 text-2xl mx-auto mb-4">
+              <i class="fas fa-print"></i>
+            </div>
+            <h3 class="font-semibold mb-2">Imprimir</h3>
+            <p class="text-sm text-slate-500 mb-4">Imprimir relatório completo diretamente.</p>
+            <button class="btn btn-secondary w-full justify-center" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+          </div>
+          <div class="card p-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 text-2xl mx-auto mb-4">
+              <i class="fas fa-file-excel"></i>
+            </div>
+            <h3 class="font-semibold mb-2">Excel (.xlsx)</h3>
+            <p class="text-sm text-slate-500 mb-4">Exportar todos os dados para planilha.</p>
+            <button class="btn btn-success w-full justify-center" onclick="exportarExcel()"><i class="fas fa-download"></i> Exportar</button>
+          </div>
+          <div class="card p-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 text-2xl mx-auto mb-4">
+              <i class="fas fa-file-csv"></i>
+            </div>
+            <h3 class="font-semibold mb-2">CSV</h3>
+            <p class="text-sm text-slate-500 mb-4">Formato universal para qualquer sistema.</p>
+            <button class="btn btn-primary w-full justify-center" onclick="exportarCSV()"><i class="fas fa-download"></i> Exportar</button>
+          </div>
+          <div class="card p-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 text-2xl mx-auto mb-4">
+              <i class="fas fa-hard-drive"></i>
+            </div>
+            <h3 class="font-semibold mb-2">Backup Local</h3>
+            <p class="text-sm text-slate-500 mb-4">Dados salvos automaticamente no navegador.</p>
+            <button class="btn btn-warning w-full justify-center" onclick="backupJSON()"><i class="fas fa-download"></i> Baixar JSON</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- Modal Produto -->
+<div id="modalProduto" class="modal-overlay hidden" onclick="handleOverlayClick(event, 'modalProduto')">
+  <form class="modal p-6" onclick="event.stopPropagation()" onsubmit="salvarProduto(event)">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-lg font-bold" id="tituloProduto">Novo Produto</h3>
+      <button type="button" class="close-btn text-slate-400 hover:text-slate-600 text-xl" onclick="fecharModal('modalProduto')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="md:col-span-2"><label>Nome do Produto *</label><input class="input" id="p-nome" required></div>
+      <div><label>Categoria *</label>
+        <select class="input" id="p-cat" required><option>Móvel</option><option>Eletrodoméstico</option></select>
+      </div>
+      <div><label>Marca</label><input class="input" id="p-marca"></div>
+      <div><label>Modelo</label><input class="input" id="p-modelo"></div>
+      <div><label>Quantidade *</label><input type="number" class="input" id="p-qtd" value="1" min="1" required></div>
+      <div class="md:col-span-2"><label>Observações</label><textarea class="input" id="p-obs" rows="2"></textarea></div>
+    </div>
+    <input type="hidden" id="p-id">
+    <div class="flex justify-end gap-2 mt-6">
+      <button type="button" class="btn btn-secondary" onclick="fecharModal('modalProduto')">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Salvar</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal Orçamento -->
+<div id="modalOrcamento" class="modal-overlay hidden" onclick="handleOverlayClick(event, 'modalOrcamento')">
+  <form class="modal p-6" onclick="event.stopPropagation()" onsubmit="salvarOrcamento(event)">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-lg font-bold" id="tituloOrcamento">Novo Orçamento</h3>
+      <button type="button" class="close-btn text-slate-400 hover:text-slate-600 text-xl" onclick="fecharModal('modalOrcamento')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="md:col-span-2"><label>Produto *</label>
+        <select class="input" id="o-prod" required onchange="calcularModal()"></select>
+      </div>
+      <div class="md:col-span-2"><label>Nome da Loja *</label><input class="input" id="o-loja" required></div>
+      <div class="md:col-span-2"><label>Link do Produto</label><input type="url" class="input" id="o-link" placeholder="https://..."></div>
+      <div><label>Valor À Vista (R$) *</label><input type="number" step="0.01" class="input" id="o-vista" required oninput="calcularModal()"></div>
+      <div><label>Frete (R$)</label><input type="number" step="0.01" class="input" id="o-frete" value="0" oninput="calcularModal()"></div>
+      <div><label>Qtd Parcelas</label><input type="number" class="input" id="o-parc" value="1" min="1" oninput="calcularModal()"></div>
+      <div><label>Valor da Parcela (R$)</label><input type="number" step="0.01" class="input" id="o-vparc" value="0" oninput="calcularModal()"></div>
+      <div><label>Total Parcelado</label><input type="number" step="0.01" class="input" id="o-tparc" readonly></div>
+      <div><label>Prazo de Entrega</label><input class="input" id="o-prazo" placeholder="Ex: 15 dias"></div>
+      <div><label>Data da Cotação</label><input type="date" class="input" id="o-data" required></div>
+      <div class="md:col-span-2"><label>Observações</label><textarea class="input" id="o-obs" rows="2"></textarea></div>
+      <div class="md:col-span-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-sm">
+        <strong>Total Final (c/ frete x qtd): <span id="o-total" class="text-blue-600 dark:text-blue-400">R$ 0,00</span></strong>
+      </div>
+    </div>
+    <input type="hidden" id="o-id">
+    <div class="flex justify-end gap-2 mt-6">
+      <button type="button" class="btn btn-secondary" onclick="fecharModal('modalOrcamento')">Cancelar</button>
+      <button type="submit" class="btn btn-primary">Salvar</button>
+    </div>
+  </form>
+</div>
+
+<script>
+// ============ DADOS ============
+let produtos = JSON.parse(localStorage.getItem('orcamax_produtos') || '[]');
+let orcamentos = JSON.parse(localStorage.getItem('orcamax_orcamentos') || '[]');
+
+function salvar() {
+  localStorage.setItem('orcamax_produtos', JSON.stringify(produtos));
+  localStorage.setItem('orcamax_orcamentos', JSON.stringify(orcamentos));
+}
+
+function moeda(v) {
+  if (v === null || v === undefined || isNaN(v)) return 'R$ 0,00';
+  return 'R$ ' + Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+function hoje() { return new Date().toISOString().split('T')[0]; }
+
+// ============ ATUALIZAÇÃO CENTRALIZADA DA UI ============
+function refreshActivePage() {
+  const el = document.querySelector('.nav-item.active');
+  if(!el) return;
+  const page = el.dataset.page;
+  if (page === 'dashboard') renderDashboard();
+  else if (page === 'produtos') renderProdutos();
+  else if (page === 'orcamentos') renderOrcamentos();
+  else if (page === 'comparacao') renderComparacao();
+}
+
+// ============ SISTEMA DE MODAIS ============
+function abrirModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function fecharModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+function handleOverlayClick(e, id) {
+  if (e.target.classList.contains('modal-overlay')) fecharModal(id);
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => m.classList.add('hidden'));
+    document.body.style.overflow = '';
+  }
+});
+
+// ============ NAVEGAÇÃO ============
+document.querySelectorAll('.nav-item[data-page]').forEach(el => {
+  el.onclick = () => {
+    document.querySelectorAll('.nav-item[data-page]').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + el.dataset.page).classList.add('active');
+    document.getElementById('pageTitle').textContent = el.textContent.trim();
+    toggleSidebar(false);
+    refreshActivePage();
+  };
+});
+
+function toggleSidebar(force) {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('overlay');
+  const open = force === undefined ? !sb.classList.contains('open') : force;
+  sb.classList.toggle('open', open);
+  ov.classList.toggle('hidden', !open);
+}
+
+// ============ TEMA ============
+let dark = localStorage.getItem('orcamax_tema') === '1';
+if (dark) document.documentElement.classList.add('dark');
+atualizaTema();
+document.getElementById('themeToggle').onclick = () => {
+  dark = !dark;
+  document.documentElement.classList.toggle('dark', dark);
+  localStorage.setItem('orcamax_tema', dark ? '1' : '0');
+  atualizaTema();
+  if (document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
+};
+function atualizaTema() {
+  document.getElementById('themeIcon').className = dark ? 'fas fa-sun w-5' : 'fas fa-moon w-5';
+  document.getElementById('themeText').textContent = dark ? 'Tema Claro' : 'Tema Escuro';
+}
+
+// ============ PRODUTOS ============
+function openModalProduto(id) {
+  const isEdit = typeof id === 'string';
+  document.getElementById('tituloProduto').textContent = isEdit ? 'Editar Produto' : 'Novo Produto';
+  ['p-nome','p-marca','p-modelo','p-obs','p-id'].forEach(x => document.getElementById(x).value = '');
+  document.getElementById('p-qtd').value = 1;
+  document.getElementById('p-cat').value = 'Móvel';
+  
+  if (isEdit) {
+    const p = produtos.find(x => x.id === id);
+    if (p) {
+      document.getElementById('p-id').value = p.id;
+      document.getElementById('p-nome').value = p.nome;
+      document.getElementById('p-cat').value = p.categoria;
+      document.getElementById('p-marca').value = p.marca || '';
+      document.getElementById('p-modelo').value = p.modelo || '';
+      document.getElementById('p-qtd').value = p.quantidade || 1;
+      document.getElementById('p-obs').value = p.observacoes || '';
+    }
+  }
+  abrirModal('modalProduto');
+}
+
+function salvarProduto(e) {
+  if(e) e.preventDefault();
+  const nome = document.getElementById('p-nome').value.trim();
+  const obj = {
+    id: document.getElementById('p-id').value || uid(),
+    nome,
+    categoria: document.getElementById('p-cat').value,
+    marca: document.getElementById('p-marca').value.trim(),
+    modelo: document.getElementById('p-modelo').value.trim(),
+    quantidade: parseInt(document.getElementById('p-qtd').value) || 1,
+    observacoes: document.getElementById('p-obs').value.trim()
+  };
+  const idx = produtos.findIndex(p => p.id === obj.id);
+  if (idx >= 0) produtos[idx] = obj; else produtos.push(obj);
+  
+  salvar(); 
+  fecharModal('modalProduto'); 
+  carregarSelProdOrc(); 
+  refreshActivePage();
+}
+
+function excluirProduto(id) {
+  if (!confirm('Excluir produto e TODOS os seus orçamentos?')) return;
+  produtos = produtos.filter(p => p.id !== id);
+  orcamentos = orcamentos.filter(o => o.produtoId !== id);
+  salvar(); 
+  carregarSelProdOrc();
+  carregarSelLojas();
+  refreshActivePage();
+}
+
+function renderProdutos() {
+  const tb = document.getElementById('tabelaProdutos');
+  if (!produtos.length) { tb.innerHTML = '<tr><td colspan="8" class="text-center py-10 text-slate-400">Nenhum produto cadastrado</td></tr>'; return; }
+  tb.innerHTML = produtos.map(p => {
+    const orcs = orcamentosPorProduto(p.id);
+    const ranks = rankearOrcamentos(orcs);
+    const melhor = ranks[0];
+    return `<tr>
+      <td class="font-semibold">${p.nome}</td>
+      <td><span class="badge ${p.categoria==='Móvel'?'badge-movel':'badge-eletro'}">${p.categoria}</span></td>
+      <td>${p.marca || '-'}</td>
+      <td>${p.modelo || '-'}</td>
+      <td class="text-center">${p.quantidade || 1}</td>
+      <td class="text-center">${orcs.length}</td>
+      <td class="font-semibold text-green-600">${melhor ? moeda(melhor.totalFinal) : '-'}</td>
+      <td>
+        <button class="text-blue-600 hover:text-blue-800 mr-2" onclick="openModalProduto('${p.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+        <button class="text-red-600 hover:text-red-800" onclick="excluirProduto('${p.id}')" title="Excluir"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ ORÇAMENTOS ============
+function orcamentosPorProduto(prodId) {
+  return orcamentos.filter(o => o.produtoId === prodId).map(o => {
+    const qtd = produtos.find(p=>p.id===o.produtoId)?.quantidade || 1;
+    return {
+      ...o,
+      totalParcelado: (o.parcelas || 1) * (o.valorParcela || o.valorVista || 0),
+      totalFinal: ((o.valorVista || 0) + (o.frete || 0)) * qtd
+    };
+  });
+}
+
+function rankearOrcamentos(lista) {
+  return [...lista].sort((a,b) => a.totalFinal - b.totalFinal);
+}
+
+function carregarSelProdOrc() {
+  const sel = document.getElementById('selProdutoOrc');
+  const atual = sel.value;
+  sel.innerHTML = '<option value="">Todos os produtos</option>' + produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  if (atual && produtos.find(p => p.id === atual)) sel.value = atual;
+}
+
+function carregarSelProdModal(selId) {
+  const sel = document.getElementById(selId);
+  sel.innerHTML = produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+}
+
+function openModalOrcamento(id) {
+  if (!produtos.length) {
+    alert('Cadastre um produto primeiro! Vá em: Produtos → Novo Produto');
+    return;
+  }
+  const isEdit = typeof id === 'string';
+  document.getElementById('tituloOrcamento').textContent = isEdit ? 'Editar Orçamento' : 'Novo Orçamento';
+  carregarSelProdModal('o-prod');
+  
+  // Reset fields
+  document.getElementById('o-id').value = '';
+  document.getElementById('o-loja').value = '';
+  document.getElementById('o-link').value = '';
+  document.getElementById('o-vista').value = '';
+  document.getElementById('o-frete').value = '0';
+  document.getElementById('o-parc').value = '1';
+  document.getElementById('o-vparc').value = '0';
+  document.getElementById('o-tparc').value = '0';
+  document.getElementById('o-prazo').value = '';
+  document.getElementById('o-data').value = hoje();
+  document.getElementById('o-obs').value = '';
+
+  if (isEdit) {
+    const o = orcamentos.find(x => x.id === id);
+    if (o) {
+      document.getElementById('o-id').value = o.id;
+      document.getElementById('o-prod').value = o.produtoId;
+      document.getElementById('o-loja').value = o.loja;
+      document.getElementById('o-link').value = o.link || '';
+      document.getElementById('o-vista').value = o.valorVista;
+      document.getElementById('o-frete').value = o.frete || 0;
+      document.getElementById('o-parc').value = o.parcelas || 1;
+      document.getElementById('o-vparc').value = o.valorParcela || 0;
+      document.getElementById('o-prazo').value = o.prazo || '';
+      document.getElementById('o-data').value = o.data || hoje();
+      document.getElementById('o-obs').value = o.observacoes || '';
+    }
+  } else {
+    const sel = document.getElementById('selProdutoOrc');
+    if (sel && sel.value) document.getElementById('o-prod').value = sel.value;
+  }
+  
+  calcularModal();
+  abrirModal('modalOrcamento');
+}
+
+function calcularModal() {
+  const vista = parseFloat(document.getElementById('o-vista').value) || 0;
+  const frete = parseFloat(document.getElementById('o-frete').value) || 0;
+  const parc = parseInt(document.getElementById('o-parc').value) || 1;
+  const vparc = parseFloat(document.getElementById('o-vparc').value) || 0;
+  
+  const tparc = parc * vparc;
+  document.getElementById('o-tparc').value = tparc.toFixed(2);
+  
+  const pid = document.getElementById('o-prod').value;
+  const qtd = produtos.find(p => p.id === pid)?.quantidade || 1;
+  document.getElementById('o-total').textContent = moeda((vista + frete) * qtd);
+}
+
+function salvarOrcamento(e) {
+  if(e) e.preventDefault();
+  const loja = document.getElementById('o-loja').value.trim();
+  const vista = parseFloat(document.getElementById('o-vista').value);
+  
+  const obj = {
+    id: document.getElementById('o-id').value || uid(),
+    produtoId: document.getElementById('o-prod').value,
+    loja,
+    link: document.getElementById('o-link').value.trim(),
+    valorVista: vista,
+    frete: parseFloat(document.getElementById('o-frete').value) || 0,
+    parcelas: parseInt(document.getElementById('o-parc').value) || 1,
+    valorParcela: parseFloat(document.getElementById('o-vparc').value) || 0,
+    prazo: document.getElementById('o-prazo').value.trim(),
+    data: document.getElementById('o-data').value,
+    observacoes: document.getElementById('o-obs').value.trim()
+  };
+  
+  const idx = orcamentos.findIndex(o => o.id === obj.id);
+  if (idx >= 0) orcamentos[idx] = obj; else orcamentos.push(obj);
+  
+  salvar(); 
+  fecharModal('modalOrcamento');
+  carregarSelLojas();
+  refreshActivePage();
+}
+
+function excluirOrcamento(id) {
+  if (!confirm('Excluir orçamento?')) return;
+  orcamentos = orcamentos.filter(o => o.id !== id);
+  salvar(); 
+  carregarSelLojas();
+  refreshActivePage();
+}
+
+function renderOrcamentos() {
+  const filtro = document.getElementById('selProdutoOrc').value;
+  const tb = document.getElementById('tabelaOrcamentos');
+  
+  let lista = [];
+  if (filtro) {
+    lista = orcamentosPorProduto(filtro);
+  } else {
+    lista = orcamentos.map(o => {
+      const p = produtos.find(x => x.id === o.produtoId);
+      const qtd = p ? (p.quantidade || 1) : 1;
+      return {
+        ...o,
+        totalParcelado: (o.parcelas || 1) * (o.valorParcela || o.valorVista || 0),
+        totalFinal: ((o.valorVista || 0) + (o.frete || 0)) * qtd
+      };
+    });
+  }
+
+  if (!lista.length) { tb.innerHTML = '<tr><td colspan="12" class="text-center py-10 text-slate-400">Nenhum orçamento cadastrado</td></tr>'; return; }
+  
+  const ranks = {};
+  [...new Set(lista.map(o => o.produtoId))].forEach(pid => {
+    rankearOrcamentos(lista.filter(x => x.produtoId === pid)).forEach((o,i) => ranks[o.id] = i+1);
+  });
+  
+  tb.innerHTML = lista.map(o => {
+    const p = produtos.find(x => x.id === o.produtoId);
+    const nomeProd = p ? p.nome : 'Produto Desconhecido';
+    const rank = ranks[o.id];
+    const badge = rank === 1 ? '<span class="badge badge-best"><i class="fas fa-trophy mr-1"></i>1º</span>' :
+                  rank === 2 ? '<span class="badge badge-second"><i class="fas fa-medal mr-1"></i>2º</span>' : `<span class="text-xs text-slate-400">${rank}º</span>`;
+    
+    // Retirada a classe que deixava o texto fraco (text-slate-600 e dark:text-slate-300)
+    return `<tr class="${rank===1?'best':rank===2?'second':''}">
+      <td class="font-semibold" title="${nomeProd}">${nomeProd.length > 25 ? nomeProd.substring(0, 25) + '...' : nomeProd}</td>
+      <td class="font-semibold">${o.loja}</td>
+      <td>${o.link?`<a href="${o.link}" target="_blank" class="link"><i class="fas fa-external-link-alt"></i></a>`:'-'}</td>
+      <td>${moeda(o.valorVista)}</td>
+      <td>${moeda(o.totalParcelado)}</td>
+      <td class="text-center">${o.parcelas}x</td>
+      <td>${moeda(o.frete||0)}</td>
+      <td class="font-bold">${moeda(o.totalFinal)}</td>
+      <td>${o.prazo||'-'}</td>
+      <td>${o.data ? o.data.split('-').reverse().join('/') : '-'}</td>
+      <td>${badge}</td>
+      <td>
+        <button class="text-blue-600 hover:text-blue-800 mr-2" onclick="openModalOrcamento('${o.id}')"><i class="fas fa-edit"></i></button>
+        <button class="text-red-600 hover:text-red-800" onclick="excluirOrcamento('${o.id}')"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ COMPARAÇÃO ============
+function carregarSelLojas() {
+  const select = document.getElementById('filtroLoja');
+  const atual = select.value;
+  const lojas = [...new Set(orcamentos.map(o => o.loja))].sort();
+  select.innerHTML = '<option value="">Todas</option>' + lojas.map(l => `<option value="${l}">${l}</option>`).join('');
+  if (lojas.includes(atual)) select.value = atual;
+}
+
+function renderComparacao() {
+  const fnome = document.getElementById('filtroNome').value.toLowerCase();
+  const fcat = document.getElementById('filtroCat').value;
+  const floja = document.getElementById('filtroLoja').value;
+  const fpreco = parseFloat(document.getElementById('filtroPreco').value);
+  const tb = document.getElementById('tabelaComparacao');
+
+  let lista = [];
+  produtos.forEach(p => {
+    if (fcat && p.categoria !== fcat) return;
+    if (fnome && !p.nome.toLowerCase().includes(fnome)) return;
+    rankearOrcamentos(orcamentosPorProduto(p.id)).forEach((o,i) => {
+      o._rank = i+1; o._prod = p;
+      if (floja && o.loja !== floja) return;
+      if (!isNaN(fpreco) && o.totalFinal > fpreco) return;
+      lista.push(o);
+    });
+  });
+  
+  if (!lista.length) { tb.innerHTML = '<tr><td colspan="12" class="text-center py-10 text-slate-400">Nenhum resultado encontrado</td></tr>'; return; }
+
+  tb.innerHTML = lista.map(o => {
+    const status = o._rank === 1 ? '<span class="badge badge-best"><i class="fas fa-trophy mr-1"></i>MELHOR</span>' :
+                   o._rank === 2 ? '<span class="badge badge-second"><i class="fas fa-medal mr-1"></i>2º LUGAR</span>' : '';
+    return `<tr class="${o._rank===1?'best':o._rank===2?'second':''}">
+      <td class="font-semibold">${o._prod.nome}</td>
+      <td><span class="badge ${o._prod.categoria==='Móvel'?'badge-movel':'badge-eletro'}">${o._prod.categoria}</span></td>
+      <td>${o.loja}</td>
+      <td>${o.link?`<a href="${o.link}" target="_blank" class="link text-xs"><i class="fas fa-external-link-alt mr-1"></i>Abrir</a>`:'-'}</td>
+      <td class="text-right tabular-nums">${moeda(o.valorVista)}</td>
+      <td class="text-right tabular-nums">${moeda(o.totalParcelado)}</td>
+      <td class="text-center">${o.parcelas}x ${o.valorParcela?moeda(o.valorParcela):''}</td>
+      <td class="text-right tabular-nums">${moeda(o.frete||0)}</td>
+      <td class="text-right font-bold tabular-nums">${moeda(o.totalFinal)}</td>
+      <td>${o.prazo||'-'}</td>
+      <td>${o.data ? o.data.split('-').reverse().join('/') : '-'}</td>
+      <td>${status}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ DASHBOARD ============
+let chart1, chart2;
+
+function calcularKPIs() {
+  let totalGeral = 0, totalMelhor = 0, totalPior = 0, lojas = new Set(), qtdOrcs = 0;
+  produtos.forEach(p => {
+    const orcs = rankearOrcamentos(orcamentosPorProduto(p.id));
+    if (!orcs.length) return;
+    orcs.forEach(o => { lojas.add(o.loja); totalGeral += o.totalFinal; qtdOrcs++; });
+    totalMelhor += orcs[0].totalFinal;
+    totalPior += orcs[orcs.length-1].totalFinal;
+  });
+  return { totalGeral, totalMelhor, economia: totalPior - totalMelhor, lojas: lojas.size, produtos: produtos.length, qtdOrcs };
+}
+
+function renderDashboard() {
+  const k = calcularKPIs();
+  document.getElementById('kpi-total').textContent = moeda(k.totalGeral);
+  document.getElementById('kpi-melhor').textContent = moeda(k.totalMelhor);
+  document.getElementById('kpi-economia').textContent = moeda(k.economia);
+  document.getElementById('kpi-lojas').textContent = k.lojas;
+  document.getElementById('kpi-produtos').textContent = k.produtos;
+
+  const isDark = document.documentElement.classList.contains('dark');
+  const textColor = isDark ? '#cbd5e1' : '#475569';
+  const gridColor = isDark ? 'rgba(148,163,184,.1)' : 'rgba(15,23,42,.06)';
+
+  const catData = {};
+  const chartData = produtos.map(p => {
+    const orcs = rankearOrcamentos(orcamentosPorProduto(p.id));
+    catData[p.categoria] = (catData[p.categoria]||0) + (orcs[0]?.totalFinal || 0);
+    return {
+      name: p.nome.length > 22 ? p.nome.substr(0,22)+'...' : p.nome,
+      melhor: orcs[0]?.totalFinal || 0,
+      medio: orcs.length ? orcs.reduce((s,o)=>s+o.totalFinal,0)/orcs.length : 0,
+      pior: orcs.length ? orcs[orcs.length-1].totalFinal : 0
+    };
+  });
+
+  const el1 = document.getElementById('chart1');
+  if (chart1) chart1.dispose();
+  chart1 = echarts.init(el1);
+  chart1.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' },
+      valueFormatter: v => 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2}) },
+    legend: { data: ['Melhor','Média','Pior'], textStyle: { color: textColor }, bottom: 0 },
+    grid: { left: 60, right: 20, top: 30, bottom: 40 },
+    xAxis: { type: 'category', data: chartData.map(d=>d.name), axisLabel: { color: textColor, rotate: 25 }, axisLine:{lineStyle:{color:gridColor}} },
+    yAxis: { type: 'value', axisLabel: { color: textColor, formatter: v => 'R$ ' + (v/1000)+'k' }, splitLine:{lineStyle:{color:gridColor}} },
+    series: [
+      { name: 'Melhor', type: 'bar', data: chartData.map(d=>d.melhor), itemStyle:{color:'#16a34a', borderRadius:[4,4,0,0]} },
+      { name: 'Média', type: 'bar', data: chartData.map(d=>d.medio), itemStyle:{color:'#2563eb', borderRadius:[4,4,0,0]} },
+      { name: 'Pior', type: 'bar', data: chartData.map(d=>d.pior), itemStyle:{color:'#dc2626', borderRadius:[4,4,0,0]} }
+    ]
+  });
+
+  const el2 = document.getElementById('chart2');
+  if (chart2) chart2.dispose();
+  chart2 = echarts.init(el2);
+  const pieData = Object.entries(catData).map(([name,value])=>({name, value}));
+  chart2.setOption({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'item', valueFormatter: v => 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2}) },
+    legend: { bottom: 0, textStyle: { color: textColor } },
+    color: ['#8b5cf6','#0ea5e9','#10b981','#f59e0b','#ef4444'],
+    series: [{ type: 'pie', radius: ['40%','70%'], avoidLabelOverlap: true,
+      label: { color: textColor, formatter: '{b}\nR$ {c}' },
+      data: pieData.length ? pieData : [{name:'Sem dados', value:1}]
+    }]
+  });
+
+  const div = document.getElementById('melhoresOfertas');
+  const mels = [];
+  produtos.forEach(p => {
+    const r = rankearOrcamentos(orcamentosPorProduto(p.id));
+    if (r[0]) {
+      const segundo = r[1];
+      mels.push({p, melhor: r[0], segundo, economia: segundo ? segundo.totalFinal - r[0].totalFinal : 0});
+    }
+  });
+  if (!mels.length) { div.innerHTML = '<p class="text-center py-8 text-slate-400">Cadastre produtos e orçamentos para ver as melhores ofertas</p>'; return; }
+  div.innerHTML = `<table><thead><tr><th>Produto</th><th>Categoria</th><th>Loja</th><th>Melhor Preço</th><th>2º Colocado</th><th>Economia</th></tr></thead><tbody>` +
+    mels.map(m => `<tr>
+      <td class="font-semibold">${m.p.nome}</td>
+      <td><span class="badge ${m.p.categoria==='Móvel'?'badge-movel':'badge-eletro'}">${m.p.categoria}</span></td>
+      <td>${m.melhor.loja} ${m.melhor.link?`<a href="${m.melhor.link}" target="_blank" class="link ml-1"><i class="fas fa-external-link-alt"></i></a>`:''}</td>
+      <td class="font-bold text-green-600">${moeda(m.melhor.totalFinal)}</td>
+      <td>${m.segundo?m.segundo.loja+' ('+moeda(m.segundo.totalFinal)+')':'-'}</td>
+      <td class="font-semibold text-amber-600">${m.economia>0?moeda(m.economia):'-'}</td>
+    </tr>`).join('') + '</tbody></table>';
+
+  window.addEventListener('resize', () => { chart1 && chart1.resize(); chart2 && chart2.resize(); });
+}
+
+// ============ EXPORTAÇÃO ============
+function todosDadosFlat() {
+  const rows = [];
+  produtos.forEach(p => {
+    rankearOrcamentos(orcamentosPorProduto(p.id)).forEach((o,i) => {
+      rows.push({
+        Produto: p.nome, Categoria: p.categoria, Marca: p.marca||'', Modelo: p.modelo||'',
+        Quantidade: p.quantidade||1, Loja: o.loja, Link: o.link||'',
+        'Valor Vista': o.valorVista, 'Frete': o.frete||0,
+        'Parcelas': o.parcelas, 'Valor Parcela': o.valorParcela||0,
+        'Total Parcelado': o.totalParcelado, 'Total Final c/ Frete': o.totalFinal,
+        'Prazo': o.prazo||'', 'Data Cotação': o.data||'', 'Ranking': i+1,
+        'Observações Produto': p.observacoes||'', 'Observações Orçamento': o.observacoes||''
+      });
+    });
+  });
+  return rows;
+}
+
+function exportarExcel() {
+  const rows = todosDadosFlat();
+  if (!rows.length) { alert('Sem dados para exportar'); return; }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:25},{wch:15},{wch:15},{wch:15},{wch:10},{wch:20},{wch:30},{wch:12},{wch:10},{wch:10},{wch:14},{wch:16},{wch:18},{wch:12},{wch:12},{wch:8},{wch:30},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Orcamentos');
+  XLSX.writeFile(wb, 'comparacao_orcamentos_'+hoje()+'.xlsx');
+}
+
+function exportarCSV() {
+  const rows = todosDadosFlat();
+  if (!rows.length) { alert('Sem dados para exportar'); return; }
+  const headers = Object.keys(rows[0]);
+  const csv = [headers.join(';'), ...rows.map(r => headers.map(h => {
+    let v = r[h]; if (typeof v === 'number') v = v.toString().replace('.',',');
+    return '"' + String(v).replace(/"/g,'""') + '"';
+  }).join(';'))].join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'comparacao_orcamentos_'+hoje()+'.csv';
+  a.click();
+}
+
+function backupJSON() {
+  const dados = { produtos, orcamentos, exportadoEm: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(dados,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'backup_orcamax_'+hoje()+'.json';
+  a.click();
+}
+
+// ============ PDF ============
+async function gerarPDF(apenasMelhores) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(18); doc.setTextColor(37,99,235);
+  doc.text('Relatório de Comparação de Orçamentos', 14, 18);
+  doc.setFontSize(10); doc.setTextColor(100);
+  doc.text('Gerado em: ' + new Date().toLocaleString('pt-BR'), 14, 25);
+  if (apenasMelhores) { doc.setTextColor(22,163,74); doc.text('Apenas melhores opções por produto', 14, 31); }
+
+  let y = apenasMelhores ? 40 : 36;
+  const k = calcularKPIs();
+  doc.setFontSize(11); doc.setTextColor(0);
+  doc.text(`Total de produtos: ${k.produtos}    Lojas consultadas: ${k.lojas}    Melhor orçamento: ${moeda(k.totalMelhor)}    Economia: ${moeda(k.economia)}`, 14, y);
+  y += 8;
+
+  const body = [];
+  produtos.forEach(p => {
+    let orcs = rankearOrcamentos(orcamentosPorProduto(p.id));
+    if (apenasMelhores) orcs = orcs.slice(0,1);
+    orcs.forEach((o,i) => {
+      body.push([
+        p.nome, o.loja, moeda(o.valorVista),
+        o.parcelas>1 ? `${o.parcelas}x ${moeda(o.valorParcela)}` : '-',
+        moeda(o.frete||0), moeda(o.totalFinal), o.prazo||'-',
+        apenasMelhores ? 'MELHOR' : (i===0?'1º':i===1?'2º':`${i+1}º`)
+      ]);
+    });
+  });
+
+  if (!body.length) { alert('Sem dados para gerar PDF'); return; }
+
+  doc.autoTable({
+    startY: y,
+    head: [['PRODUTO','LOJA','À VISTA','PARCELADO','FRETE','TOTAL FINAL','PRAZO','STATUS']],
+    body,
+    theme: 'striped',
+    headStyles: { fillColor: [37,99,235], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+    styles: { fontSize: 8, cellPadding: 3 },
+    alternateRowStyles: { fillColor: [248,250,252] },
+    didParseCell: (data) => {
+      if (data.section === 'body') {
+        const status = data.row.raw[7];
+        if (status === 'MELHOR' || status === '1º') data.cell.styles.textColor = [22,163,74];
+        if (status === '2º') data.cell.styles.textColor = [202,138,4];
+      }
+    }
+  });
+
+  doc.save('orcamento_'+(apenasMelhores?'melhores_':'')+hoje()+'.pdf');
+}
+
+// ============ DEMO ============
+function loadDemo() {
+  if (!confirm('Carregar dados de exemplo? (Substitui dados atuais)')) return;
+  const p1 = { id: uid(), nome: 'Geladeira Frost Free 450L', categoria: 'Eletrodoméstico', marca: 'Brastemp', modelo: 'BRM45', quantidade: 1, observacoes: 'Inox' };
+  const p2 = { id: uid(), nome: 'Sofá 3 Lugares Retrátil', categoria: 'Móvel', marca: 'Ortobom', modelo: 'Confort Plus', quantidade: 1, observacoes: 'Cor Cinza' };
+  const p3 = { id: uid(), nome: 'Fogão 5 Bocas', categoria: 'Eletrodoméstico', marca: 'Electrolux', modelo: 'FE5X', quantidade: 1, observacoes: '' };
+  produtos = [p1,p2,p3];
+  orcamentos = [
+    { id: uid(), produtoId: p1.id, loja: 'Magazine Luiza', link: 'https://www.magazineluiza.com.br', valorVista: 3999, frete: 0, parcelas: 10, valorParcela: 439.90, prazo: '7 dias', data: hoje(), observacoes: 'Retirada na loja' },
+    { id: uid(), produtoId: p1.id, loja: 'Casas Bahia', link: 'https://www.casasbahia.com.br', valorVista: 3850, frete: 49.90, parcelas: 12, valorParcela: 359.90, prazo: '10 dias', data: hoje(), observacoes: 'Entrega inclusa' },
+    { id: uid(), produtoId: p1.id, loja: 'Amazon', link: 'https://www.amazon.com.br', valorVista: 3920, frete: 0, parcelas: 8, valorParcela: 510, prazo: '5 dias', data: hoje(), observacoes: 'Prime' },
+    { id: uid(), produtoId: p2.id, loja: 'Mobly', link: 'https://www.mobly.com.br', valorVista: 2199, frete: 120, parcelas: 10, valorParcela: 239, prazo: '20 dias', data: hoje(), observacoes: '' },
+    { id: uid(), produtoId: p2.id, loja: 'MadeiraMadeira', link: 'https://www.madeiramadeira.com.br', valorVista: 2350, frete: 0, parcelas: 12, valorParcela: 209.90, prazo: '25 dias', data: hoje(), observacoes: 'Montagem inclusa' },
+    { id: uid(), produtoId: p3.id, loja: 'Ponto Frio', link: 'https://www.pontofrio.com.br', valorVista: 1899, frete: 39.90, parcelas: 10, valorParcela: 199.90, prazo: '8 dias', data: hoje(), observacoes: '' },
+    { id: uid(), produtoId: p3.id, loja: 'Casas Bahia', link: 'https://www.casasbahia.com.br', valorVista: 1799, frete: 0, parcelas: 12, valorParcela: 159.90, prazo: '12 dias', data: hoje(), observacoes: 'Black Friday' },
+  ];
+  salvar();
+  carregarSelProdOrc(); 
+  carregarSelLojas();
+  refreshActivePage();
+  alert('Exemplo carregado com sucesso!');
+}
+
+function clearAll() {
+  if (!confirm('Apagar TODOS os produtos e orçamentos? Essa ação não pode ser desfeita.')) return;
+  produtos = []; orcamentos = []; salvar();
+  carregarSelProdOrc(); 
+  carregarSelLojas();
+  refreshActivePage();
+}
+
+// ============ INICIALIZAÇÃO ============
+carregarSelProdOrc();
+carregarSelLojas();
+refreshActivePage();
+</script>
+</body>
+</html>

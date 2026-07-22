@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="pt-BR" style="margin:0;padding:0;">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparativo · Inove Móveis + Concorrentes</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+      colors: { primary: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' } }
+    }
+  }
+}
+</script>
+
+<style>
+  * { box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:#f1f5f9; color:#0f172a; }
+  .tab-btn.active { background:#1e40af; color:#fff; }
+  .card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; box-shadow:0 1px 3px rgba(15,23,42,.06); }
+  input, select, textarea { border:1px solid #cbd5e1; border-radius:8px; padding:8px 12px; width:100%; font-size:14px; transition:all .15s; background:#fff; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.15); }
+  label { font-size:12px; font-weight:600; color:#475569; display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:.03em; }
+  .btn { padding:10px 16px; border-radius:8px; font-weight:600; font-size:14px; cursor:pointer; border:none; transition:all .15s; display:inline-flex; align-items:center; gap:6px; }
+  .btn-primary { background:#2563eb; color:#fff; } .btn-primary:hover { background:#1d4ed8; }
+  .btn-secondary { background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; } .btn-secondary:hover { background:#e2e8f0; }
+  .btn-success { background:#16a34a; color:#fff; } .btn-success:hover { background:#15803d; }
+  .btn-danger { background:#dc2626; color:#fff; } .btn-danger:hover { background:#b91c1c; }
+  .btn-warning { background:#ca8a04; color:#fff; } .btn-warning:hover { background:#a16207; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { padding:10px 12px; text-align:left; border-bottom:1px solid #e2e8f0; }
+  th { background:#f8fafc; font-weight:600; color:#475569; font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
+  tr:hover td { background:#f8fafc; }
+  .comodo-header { background:#1e3a8a !important; color:#fff !important; font-weight:800; font-size:15px; }
+  .subtotal-row { background:#dbeafe !important; font-weight:800; color:#1e3a8a; }
+  .total-geral { background:#1e40af !important; color:#fff !important; font-weight:900; font-size:16px; }
+  .menor-valor { background:#dcfce7 !important; color:#14532d !important; font-weight:800 !important; }
+  .melhor-prazo { background:#fef9c3 !important; color:#713f12 !important; font-weight:800 !important; }
+  .recomendado { background:#dbeafe !important; color:#1e3a8a !important; font-weight:800 !important; }
+  .desconto-bom { color:#15803d; font-weight:700; }
+  .metric { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px; }
+  .metric .label { font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:.05em; }
+  .metric .value { font-size:24px; font-weight:800; color:#0f172a; margin-top:4px; }
+  .pill { padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; display:inline-block; }
+  .status-aprovado { background:#dcfce7; color:#166534; }
+  .status-reprovado { background:#fee2e2; color:#991b1b; }
+  .status-aguardando { background:#fef3c7; color:#92400e; }
+  .destaque-inove { background:linear-gradient(90deg,#dbeafe,#eff6ff) !important; border-left:4px solid #1e40af !important; }
+  
+  /* Area de impressão dedicada oculta na tela normal */
+  #printArea { display: none; }
+  
+  @media print { 
+      .no-print, .tab-btn, header, nav { display:none !important; } 
+      .print-section { display:block !important; page-break-inside:avoid; } 
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      
+      /* Quando acionado a impressão customizada, oculta o MAIN e FOOTER, e exibe o printArea */
+      body.is-printing-custom > header,
+      body.is-printing-custom > nav,
+      body.is-printing-custom > main,
+      body.is-printing-custom > footer { display: none !important; }
+      body.is-printing-custom #printArea { display: block !important; background: white; }
+      
+      /* Estilos para a tabela do comparativo na impressão */
+      #printArea table { border-collapse: collapse; width: 100%; }
+      #printArea th, #printArea td { border: 1px solid #e2e8f0; padding: 8px; }
+      #printArea .comodo-header { background:#1e3a8a !important; color:#fff !important; }
+  }
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="bg-gradient-to-r from-primary-900 to-primary-700 text-white shadow-lg">
+  <div class="max-w-7xl mx-auto px-4 py-5 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center">🏢</div>
+      <div>
+        <h1 class="text-xl font-bold">Comparativo de Orçamentos · Móveis Planejados</h1>
+        <p class="text-xs text-primary-100">✅ Orçamento INOVE MÓVEIS já cadastrado</p>
+      </div>
+    </div>
+    <div class="flex gap-2 flex-wrap no-print">
+      <button class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir Tudo</button>
+      <button class="btn btn-success" onclick="exportPDF()">📄 PDF Completo</button>
+      <button class="btn btn-warning" onclick="exportExcel()">📊 Excel</button>
+    </div>
+  </div>
+</header>
+
+<nav class="bg-white border-b sticky top-0 z-40 shadow-sm no-print">
+  <div class="max-w-7xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto">
+    <button class="tab-btn active px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap" data-tab="fornecedores">🏢 Fornecedores</button>
+    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap" data-tab="itens">📝 Orçamentos</button>
+    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap" data-tab="comparacao">⚖️ Comparação</button>
+    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap" data-tab="analise">💰 Análise</button>
+    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap" data-tab="dashboard">📈 Dashboard</button>
+    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap" data-tab="aprovacao">✅ Aprovação</button>
+    <button class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 whitespace-nowrap" data-tab="resultado">🏆 Resultado</button>
+  </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+<section id="fornecedores" class="tab-content print-section">
+  <div class="card p-6 mb-4 border-l-4 border-primary-700 bg-primary-50/40">
+    <h3 class="text-lg font-bold text-primary-900 mb-1">✅ ORÇAMENTO INOVE MÓVEIS JÁ CADASTRADO</h3>
+    <p class="text-sm text-slate-700">Total Tabela: <b>R$ 105.376,00</b> · Total Negociado: <b class="text-green-700">R$ 84.300,80</b> · Economia: <b class="text-primary-800">R$ 21.075,20 (20% OFF)</b></p>
+  </div>
+  <div class="card p-6">
+    <h2 class="text-xl font-bold text-primary-900 mb-4">🏢 Cadastrar Nova Empresa</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <input type="hidden" id="fId">
+      <div><label>Nome da Empresa *</label><input id="fNome" placeholder="Ex: Minha Empresa"></div>
+      <div><label>CNPJ</label><input id="fCnpj" placeholder="00.000.000/0000-00"></div>
+      <div><label>Contato / Vendedor</label><input id="fContato"></div>
+      <div><label>Telefone</label><input id="fTel"></div>
+      <div><label>E-mail</label><input id="fEmail" type="email"></div>
+      <div><label>Prazo Médio (dias)</label><input id="fPrazo" type="number" min="0"></div>
+      <div><label>Forma de Pagamento</label>
+        <select id="fPgto"><option>À Vista</option><option>2x sem juros</option><option>3x sem juros</option><option>4x sem juros</option><option>5x sem juros</option><option>6x sem juros</option><option>10x sem juros</option><option>12x com juros</option></select>
+      </div>
+      <div class="flex items-end gap-2">
+        <button class="btn btn-secondary flex-1 justify-center" onclick="novoFornecedor()" title="Limpar para novo cadastro">➕ Novo</button>
+        <button class="btn btn-primary flex-1 justify-center" onclick="salvarFornecedor()">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+  <div class="card p-6 mt-4">
+    <h3 class="text-lg font-bold text-primary-900 mb-3">Empresas Cadastradas</h3>
+    <div class="overflow-x-auto">
+      <table id="tabFornecedores">
+        <thead><tr><th>Empresa</th><th>CNPJ</th><th>Contato</th><th>Telefone</th><th>Prazo</th><th>Pagamento</th><th>Itens</th><th>Total Neg.</th><th>Ações</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="itens" class="tab-content hidden print-section">
+  <div class="card p-6">
+    <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+        <h2 class="text-xl font-bold text-primary-900 m-0">📝 Editar Orçamento por Empresa</h2>
+        <button class="btn btn-secondary no-print border-primary-500 text-primary-700" onclick="imprimirOrcamento()">🖨️ Imprimir Este Orçamento</button>
+    </div>
+    <div class="mb-4"><label>Selecione o Fornecedor</label><select id="selFornecedor" onchange="trocarFornecedor()"></select></div>
+    <div id="dadosFornecedor" class="p-3 bg-primary-50 rounded-lg border border-primary-200 mb-4 text-sm"></div>
+    <div class="border-t pt-5">
+      <h3 class="text-lg font-bold text-primary-900 mb-3">➕ Adicionar Item</h3>
+      <input type="hidden" id="editItemId">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label>Cômodo *</label>
+          <select id="iComodo">
+            <option>Integrado (Cozinha + Lavanderia + Home + Churrasqueira + Vassoureiro)</option>
+            <option>Cozinha</option><option>Lavanderia</option><option>Home Theater</option>
+            <option>Home Office</option><option>Churrasqueira</option><option>Vassoureiro</option>
+            <option>Porta Divisória</option><option>Banheiro / BWC</option>
+            <option>Dormitório Casal</option><option>Dormitório Filho(a)</option>
+            <option>Sala de Estar</option><option>Sala de Jantar</option><option>Outro</option>
+          </select>
+        </div>
+        <div class="md:col-span-2"><label>Descrição *</label><input id="iDesc" placeholder="Armário, bancada, etc."></div>
+        <div><label>Qtd</label><input id="iQtd" type="number" min="1" value="1"></div>
+        <div><label>Vlr Tabela R$</label><input id="iTab" type="number" min="0" step="0.01"></div>
+        <div><label>Vlr Negociado R$</label><input id="iNeg" type="number" min="0" step="0.01"></div>
+        <div><label>Frete R$</label><input id="iFrete" type="number" min="0" step="0.01" value="0"></div>
+        <div class="flex items-end gap-2">
+          <button class="btn btn-primary" onclick="salvarItem()">➕ Incluir</button>
+          <button class="btn btn-secondary" onclick="limparItem()">Limpar</button>
+        </div>
+        <div class="md:col-span-4"><label>Observações</label><input id="iObs"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card p-6 mt-4">
+    <h3 class="text-lg font-bold text-primary-900 mb-3">📦 Itens do Fornecedor</h3>
+    <div class="overflow-x-auto">
+      <table id="tabItensFornecedor">
+        <thead><tr><th>Cômodo</th><th>Descrição</th><th>Qtd</th><th>Tabela</th><th>Negociado</th><th>Desc %</th><th>Frete</th><th>Total</th><th>Ações</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="comparacao" class="tab-content hidden print-section">
+  <div class="card p-6">
+    <div class="flex flex-wrap justify-between items-center mb-2 gap-2">
+      <h2 class="text-xl font-bold text-primary-900 m-0">⚖️ Comparação Lado a Lado</h2>
+      <button class="btn btn-secondary no-print border-primary-500 text-primary-700" onclick="imprimirComparativo()">🖨️ Imprimir Comparativo</button>
+    </div>
+    
+    <p class="text-sm text-slate-500 mb-4"><span class="menor-valor px-2 py-0.5 rounded font-bold">Verde</span> = menor valor por cômodo</p>
+    <div class="overflow-x-auto"><table id="tabCompara"></table></div>
+  </div>
+  <div class="card p-6 mt-4">
+    <h3 class="text-lg font-bold text-primary-900 mb-3">🏆 Ranking Geral</h3>
+    <div class="overflow-x-auto">
+      <table id="tabRanking">
+        <thead><tr><th>Pos</th><th>Empresa</th><th>Itens</th><th>Total Tabela</th><th>Total Neg.</th><th>Desc %</th><th>Economia vs 1º</th><th>Prazo</th><th>Pagamento</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="analise" class="tab-content hidden print-section">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+    <div class="metric"><div class="label">Fornecedores</div><div class="value" id="mForn">0</div></div>
+    <div class="metric"><div class="label">Menor Total</div><div class="value text-green-700" id="mMenor">R$ 0</div></div>
+    <div class="metric"><div class="label">Maior Total</div><div class="value text-red-700" id="mMaior">R$ 0</div></div>
+    <div class="metric"><div class="label">Economia Máxima</div><div class="value text-primary-800" id="mEco">R$ 0</div></div>
+  </div>
+  <div class="card p-6">
+    <h3 class="text-lg font-bold text-primary-900 mb-3">💳 Simulação no Menor Orçamento</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div><label>Valor Base</label><input id="simV" readonly style="background:#f8fafc;font-weight:700"></div>
+      <div><label>Desc. À Vista %</label><input id="simD" type="number" min="0" value="3" oninput="simular()"></div>
+      <div><label>Juros a.m. %</label><input id="simJ" type="number" step="0.1" value="1.8" oninput="simular()"></div>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4" id="simR"></div>
+  </div>
+</section>
+
+<section id="dashboard" class="tab-content hidden print-section">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+    <div class="card p-6"><h3 class="text-lg font-bold text-primary-900 mb-3">📊 Total Negociado por Fornecedor</h3><div id="ch1" style="height:380px"></div></div>
+    <div class="card p-6"><h3 class="text-lg font-bold text-primary-900 mb-3">⏱️ Prazo de Entrega (dias)</h3><div id="ch2" style="height:380px"></div></div>
+  </div>
+  <div class="card p-6"><h3 class="text-lg font-bold text-primary-900 mb-3">🥧 Participação % por Cômodo (INOVE MÓVEIS)</h3><div id="ch3" style="height:360px"></div></div>
+</section>
+
+<section id="aprovacao" class="tab-content hidden print-section">
+  <div class="card p-6">
+    <h2 class="text-xl font-bold text-primary-900 mb-4">✅ Aprovação Final</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div><label>Fornecedor Escolhido</label><select id="apForn"></select></div>
+      <div><label>Solicitante</label><input id="apSol"></div>
+      <div><label>Aprovador</label><input id="apAprov"></div>
+      <div><label>Data</label><input id="apData" type="date"></div>
+      <div><label>Validade (dias)</label><input id="apVal" type="number" value="15"></div>
+      <div><label>Status</label><select id="apSt"><option>Aguardando</option><option>Aprovado</option><option>Reprovado</option></select></div>
+      <div class="md:col-span-2"><label>Observações</label><input id="apObs"></div>
+    </div>
+    <button class="btn btn-primary mt-4" onclick="salvarAp()">💾 Salvar Aprovação</button>
+    <div id="apResumo" class="mt-5 p-4 bg-slate-50 rounded-lg border"></div>
+  </div>
+</section>
+
+<section id="resultado" class="tab-content hidden print-section">
+  <h2 class="text-xl font-bold text-primary-900 mb-4">🏁 Resultado Final da Análise</h2>
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
+    <div class="metric border-l-4 border-green-600"><div class="label">🏆 Melhor Preço</div><div class="value text-lg" id="rPreco">—</div><div class="text-sm text-slate-600" id="rPrecoV"></div></div>
+    <div class="metric border-l-4 border-yellow-500"><div class="label">⚡ Melhor Prazo</div><div class="value text-lg" id="rPrazo">—</div><div class="text-sm text-slate-600" id="rPrazoV"></div></div>
+    <div class="metric border-l-4 border-blue-500"><div class="label">💳 Melhor Pagamento</div><div class="value text-lg" id="rPgto">—</div><div class="text-sm text-slate-600" id="rPgtoV"></div></div>
+    <div class="metric border-l-4 border-primary-700 bg-primary-50"><div class="label">✅ Recomendado</div><div class="value text-lg text-primary-900" id="rRec">—</div><div class="text-sm text-slate-600" id="rRecV"></div></div>
+  </div>
+  <div class="card p-6"><div id="rel" class="text-sm space-y-2"></div></div>
+</section>
+
+</main>
+<footer class="max-w-7xl mx-auto px-4 py-6 text-center text-xs text-slate-500 border-t mt-8 no-print">
+  Orçamento INOVE MÓVEIS · R$ 84.300,80 · 20% OFF · Dados salvos localmente
+</footer>
+
+<div id="printArea"></div>
+
+<script>
+/* ==================== DADOS INICIAIS ==================== */
+const DADOS_INICIAIS = [
+  {
+    id:'inove',
+    nome:'🏆 INOVE MÓVEIS (OFICIAL)',
+    cnpj:'', contato:'', tel:'', email:'', prazo:45, pgto:'6x sem juros',
+    itens:[
+      {id:'i1',comodo:'Integrado (Cozinha + Lavanderia + Home + Churrasqueira + Vassoureiro)',desc:'Integrado: Cozinha, lavanderia, home theater, home office, churrasqueira e vassoureiro',qtd:1,tab:47993.00,neg:38394.40,frete:0,obs:'20% OFF aplicado'},
+      {id:'i2',comodo:'Porta Divisória',desc:'Porta divisória cozinha × lavanderia',qtd:1,tab:2432.00,neg:1945.60,frete:0,obs:''},
+      {id:'i3',comodo:'Banheiro / BWC',desc:'BWC completo',qtd:1,tab:6297.00,neg:5037.60,frete:0,obs:''},
+      {id:'i4',comodo:'Dormitório Casal',desc:'Dormitório Casal completo',qtd:1,tab:28134.00,neg:22507.20,frete:0,obs:''},
+      {id:'i5',comodo:'Dormitório Filho(a)',desc:'Dormitório Filha',qtd:1,tab:20520.00,neg:16416.00,frete:0,obs:''}
+    ]
+  },
+  {
+    id:'f2', nome:'Concorrente A Planejados', cnpj:'', contato:'', tel:'', email:'', prazo:35, pgto:'4x sem juros',
+    itens:[
+      {id:'i1',comodo:'Integrado (Cozinha + Lavanderia + Home + Churrasqueira + Vassoureiro)',desc:'Projeto 6 ambientes',qtd:1,tab:46900.00,neg:39500.00,frete:450,obs:''},
+      {id:'i2',comodo:'Porta Divisória',desc:'Porta de correr',qtd:1,tab:2300.00,neg:2000.00,frete:0,obs:''},
+      {id:'i3',comodo:'Banheiro / BWC',desc:'Conjunto BWC',qtd:1,tab:6100.00,neg:5200.00,frete:150,obs:''},
+      {id:'i4',comodo:'Dormitório Casal',desc:'Casal completo',qtd:1,tab:27500.00,neg:23200.00,frete:250,obs:''},
+      {id:'i5',comodo:'Dormitório Filho(a)',desc:'Infantil',qtd:1,tab:19900.00,neg:16900.00,frete:200,obs:''}
+    ]
+  },
+  {
+    id:'f3', nome:'Concorrente B Madeiras', cnpj:'', contato:'', tel:'', email:'', prazo:60, pgto:'10x sem juros',
+    itens:[
+      {id:'i1',comodo:'Integrado (Cozinha + Lavanderia + Home + Churrasqueira + Vassoureiro)',desc:'Linha Premium',qtd:1,tab:49900.00,neg:41500.00,frete:0,obs:'Frete grátis'},
+      {id:'i2',comodo:'Porta Divisória',desc:'Reforçada',qtd:1,tab:2700.00,neg:2250.00,frete:0,obs:''},
+      {id:'i3',comodo:'Banheiro / BWC',desc:'BWC premium',qtd:1,tab:6900.00,neg:5700.00,frete:0,obs:''},
+      {id:'i4',comodo:'Dormitório Casal',desc:'Casal premium',qtd:1,tab:29900.00,neg:24800.00,frete:0,obs:''},
+      {id:'i5',comodo:'Dormitório Filho(a)',desc:'Juvenil',qtd:1,tab:21900.00,neg:17900.00,frete:0,obs:''}
+    ]
+  }
+];
+
+const LS_FORN = 'inove_fornecedores_v1';
+const LS_AP   = 'inove_aprovacao_v1';
+let fornecedores = JSON.parse(localStorage.getItem(LS_FORN)||'null') || DADOS_INICIAIS;
+let aprovacao    = JSON.parse(localStorage.getItem(LS_AP)||'{}');
+let fornAtual    = fornecedores[0]?.id || null;
+let ch1,ch2,ch3;
+
+if(!localStorage.getItem(LS_FORN)) localStorage.setItem(LS_FORN, JSON.stringify(fornecedores));
+
+const fmt = v => 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct = (a,b) => b>0?((a-b)/b*100):0;
+const $   = id => document.getElementById(id);
+
+/* ==================== ABAS ==================== */
+document.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab-btn').forEach(x=>{x.classList.remove('active');x.classList.add('text-slate-600');});
+  b.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(s=>s.classList.add('hidden'));
+  $(b.dataset.tab).classList.remove('hidden');
+  if(b.dataset.tab==='fornecedores') renderFornecedores();
+  if(b.dataset.tab==='itens'){ carregarSel(); trocarFornecedor(); }
+  if(b.dataset.tab==='comparacao'){ renderCompara(); renderRanking(); }
+  if(b.dataset.tab==='analise') renderAnalise();
+  if(b.dataset.tab==='dashboard') renderDash();
+  if(b.dataset.tab==='aprovacao') carregarAp();
+  if(b.dataset.tab==='resultado') renderResultado();
+});
+
+function salvar(){ localStorage.setItem(LS_FORN, JSON.stringify(fornecedores)); }
+function totForn(f){
+  const t = f.itens.reduce((s,i)=>s + i.qtd*i.neg + (i.frete||0),0);
+  const tab = f.itens.reduce((s,i)=>s + i.qtd*i.tab,0);
+  return {tab, neg:t, desc: tab>0?((1-t/tab)*100):0};
+}
+function ranking(){ return [...fornecedores].map(f=>({...f,_t:totForn(f)})).sort((a,b)=>a._t.neg-b._t.neg); }
+
+/* ==================== FORNECEDORES ==================== */
+function salvarFornecedor(){
+  const id = $('fId').value || Date.now().toString();
+  const f = {id, nome:$('fNome').value, cnpj:$('fCnpj').value, contato:$('fContato').value, tel:$('fTel').value, email:$('fEmail').value,
+    prazo:parseInt($('fPrazo').value)||0, pgto:$('fPgto').value, itens: fornecedores.find(x=>x.id===id)?.itens || []};
+  if(!f.nome){ alert('Informe o nome'); return; }
+  const i = fornecedores.findIndex(x=>x.id===id);
+  if(i>=0) fornecedores[i]=f; else fornecedores.push(f);
+  salvar(); ['fId','fNome','fCnpj','fContato','fTel','fEmail','fPrazo'].forEach(x=>$(x).value='');
+  alert('Empresa salva!'); renderFornecedores();
+}
+function editarForn(id){
+  const f = fornecedores.find(x=>x.id===id); if(!f) return;
+  $('fId').value=f.id; $('fNome').value=f.nome; $('fCnpj').value=f.cnpj; $('fContato').value=f.contato;
+  $('fTel').value=f.tel; $('fEmail').value=f.email; $('fPrazo').value=f.prazo||''; $('fPgto').value=f.pgto||'À Vista';
+}
+function novoFornecedor(){
+  ['fId','fNome','fCnpj','fContato','fTel','fEmail','fPrazo'].forEach(x=>$(x).value='');
+  $('fPgto').value='À Vista';
+  $('fNome').focus();
+}
+function excluirForn(id){
+  if(fornecedores.length<=1){ alert('Mantenha pelo menos 1'); return; }
+  if(!confirm('Excluir empresa e TODO seu orçamento?')) return;
+  fornecedores = fornecedores.filter(x=>x.id!==id); salvar(); renderFornecedores();
+}
+function renderFornecedores(){
+  const tb = document.querySelector('#tabFornecedores tbody');
+  tb.innerHTML = fornecedores.map(f=>{
+    const t = totForn(f);
+    return `<tr class="${f.id==='inove'?'destaque-inove':''}">
+      <td class="font-bold ${f.id==='inove'?'text-primary-900':''}">${f.nome}</td>
+      <td>${f.cnpj||'—'}</td><td>${f.contato||'—'}</td><td>${f.tel||'—'}</td>
+      <td class="text-right">${f.prazo?f.prazo+'d':'—'}</td><td>${f.pgto||'—'}</td>
+      <td class="text-right">${f.itens.length}</td>
+      <td class="text-right font-bold">${fmt(t.neg)}</td>
+      <td class="whitespace-nowrap">
+        <button class="btn btn-secondary !py-1 !px-2 !text-xs" onclick="editarForn('${f.id}')">✏️</button>
+        <button class="btn btn-primary !py-1 !px-2 !text-xs" onclick="abrirItens('${f.id}')">📝</button>
+        <button class="btn btn-danger !py-1 !px-2 !text-xs" onclick="excluirForn('${f.id}')">🗑️</button>
+      </td></tr>`;
+  }).join('');
+}
+function abrirItens(id){ fornAtual=id; document.querySelector('[data-tab="itens"]').click(); }
+
+/* ==================== ITENS POR FORNECEDOR ==================== */
+function carregarSel(){ $('selFornecedor').innerHTML = fornecedores.map(f=>`<option value="${f.id}" ${f.id===fornAtual?'selected':''}>${f.nome}</option>`).join(''); }
+function trocarFornecedor(){
+  fornAtual = $('selFornecedor').value;
+  const f = fornecedores.find(x=>x.id===fornAtual); if(!f) return;
+  const t = totForn(f);
+  $('dadosFornecedor').innerHTML = `<b>🏢 ${f.nome}</b> · Prazo: <b>${f.prazo||0} dias</b> · Pagto: <b>${f.pgto||'—'}</b> · Tabela: ${fmt(t.tab)} · <b class="text-green-700">Negociado: ${fmt(t.neg)}</b> · <span class="desconto-bom">${t.desc.toFixed(2)}% OFF</span>`;
+  renderItens();
+}
+function limparItem(){ ['editItemId','iDesc','iTab','iNeg','iFrete','iObs'].forEach(x=>$(x).value=''); $('iQtd').value=1; }
+function salvarItem(){
+  const f = fornecedores.find(x=>x.id===fornAtual); if(!f) return;
+  const it = {id:$('editItemId').value||Date.now().toString(), comodo:$('iComodo').value, desc:$('iDesc').value,
+    qtd:parseFloat($('iQtd').value)||1, tab:parseFloat($('iTab').value)||0, neg:parseFloat($('iNeg').value)||parseFloat($('iTab').value)||0,
+    frete:parseFloat($('iFrete').value)||0, obs:$('iObs').value};
+  if(!it.desc){ alert('Informe a descrição'); return; }
+  const i = f.itens.findIndex(x=>x.id===it.id);
+  if(i>=0) f.itens[i]=it; else f.itens.push(it);
+  salvar(); limparItem(); renderItens();
+}
+function editarItem(id){
+  const f = fornecedores.find(x=>x.id===fornAtual); const it = f.itens.find(x=>x.id===id); if(!it) return;
+  $('editItemId').value=it.id; $('iComodo').value=it.comodo; $('iDesc').value=it.desc; $('iQtd').value=it.qtd;
+  $('iTab').value=it.tab; $('iNeg').value=it.neg; $('iFrete').value=it.frete||0; $('iObs').value=it.obs||'';
+}
+function excluirItem(id){
+  const f = fornecedores.find(x=>x.id===fornAtual);
+  f.itens = f.itens.filter(x=>x.id!==id); salvar(); renderItens();
+}
+function renderItens(){
+  const f = fornecedores.find(x=>x.id===fornAtual); if(!f) return;
+  const g = {}; f.itens.forEach(i=>{if(!g[i.comodo])g[i.comodo]=[];g[i.comodo].push(i);});
+  const tb = document.querySelector('#tabItensFornecedor tbody');
+  let html='', gTab=0, gNeg=0;
+  Object.entries(g).forEach(([c,arr])=>{
+    let sT=0, sN=0;
+    html += `<tr><td colspan="9" class="comodo-header">🏠 ${c}</td></tr>`;
+    arr.forEach(i=>{
+      const tT=i.qtd*i.tab, tN=i.qtd*i.neg+(i.frete||0); sT+=tT; sN+=tN; gTab+=tT; gNeg+=tN;
+      const d = i.tab>0?((1-i.neg/i.tab)*100):0;
+      html += `<tr>
+        <td style="padding-left:28px">•</td><td>${i.desc}</td><td class="text-right">${i.qtd}</td>
+        <td class="text-right">${fmt(i.tab)}</td>
+        <td class="text-right text-green-700 font-semibold">${fmt(i.neg)}</td>
+        <td class="text-right desconto-bom">${d.toFixed(2)}%</td>
+        <td class="text-right">${fmt(i.frete||0)}</td>
+        <td class="text-right font-bold">${fmt(tN)}</td>
+        <td class="whitespace-nowrap">
+          <button class="btn btn-secondary !py-1 !px-2 !text-xs" onclick="editarItem('${i.id}')">✏️</button>
+          <button class="btn btn-danger !py-1 !px-2 !text-xs" onclick="excluirItem('${i.id}')">🗑️</button>
+        </td></tr>`;
+    });
+    html += `<tr class="subtotal-row"><td style="padding-left:28px">→ Subtotal</td><td colspan="3"></td>
+      <td class="text-right">${fmt(sT)}</td><td colspan="2"></td><td class="text-right">${fmt(sN)}</td><td></td></tr>`;
+  });
+  const descG = gTab>0?((1-gNeg/gTab)*100):0;
+  html += `<tr class="total-geral">
+    <td colspan="4">💰 TOTAL ${f.nome}</td>
+    <td class="text-right">${fmt(gTab)}</td>
+    <td class="text-right">${descG.toFixed(2)}% OFF</td>
+    <td></td>
+    <td class="text-right">${fmt(gNeg)}</td><td></td></tr>`;
+  tb.innerHTML = html || `<tr><td colspan="9" class="text-center py-6 text-slate-400">Cadastre itens acima</td></tr>`;
+}
+
+/* ==================== COMPARAÇÃO ==================== */
+function renderCompara(){
+  const comodos = [...new Set(fornecedores.flatMap(f=>f.itens.map(i=>i.comodo)))].sort();
+  const tb = $('tabCompara');
+  let h = '<thead><tr><th>Cômodo / Item</th>';
+  fornecedores.forEach(f=>h += `<th class="text-center ${f.id==='inove'?'bg-primary-100':''}">${f.nome.length>22?f.nome.slice(0,22)+'…':f.nome}</th>`);
+  h += '</tr></thead><tbody>';
+
+  comodos.forEach(c=>{
+    h += `<tr><td colspan="${fornecedores.length+1}" class="comodo-header">🏠 ${c}</td></tr>`;
+    const totais = fornecedores.map(f=>f.itens.filter(i=>i.comodo===c).reduce((s,i)=>s+i.qtd*i.neg+(i.frete||0),0));
+    const min = Math.min(...totais.filter(v=>v>0));
+    h += `<tr><td style="padding-left:24px" class="font-semibold">→ Total ${c}</td>`;
+    totais.forEach((v,ix)=>h += `<td class="text-right font-bold ${v===min&&v>0?'menor-valor':''} ${fornecedores[ix].id==='inove'?'bg-blue-50':''}">${v>0?fmt(v):'—'}</td>`);
+    h += '</tr>';
+  });
+
+  const r = ranking();
+  const minN = r[0]._t.neg;
+  const minP = Math.min(...fornecedores.map(f=>f.prazo||9999));
+  h += `<tr><td colspan="${fornecedores.length+1}" class="total-geral">💰 TOTAL GERAL NEGOCIADO</td></tr>`;
+  h += `<tr><td class="font-bold">Valor Final</td>`;
+  fornecedores.forEach(f=>{const t=totForn(f).neg; h+=`<td class="text-right font-extrabold text-lg ${t===minN?'menor-valor':f.id==='inove'?'bg-blue-50':''}">${fmt(t)}</td>`;});
+  h += '</tr><tr><td class="font-bold">Desconto</td>';
+  fornecedores.forEach(f=>h+=`<td class="text-center desconto-bom">${totForn(f).desc.toFixed(2)}%</td>`);
+  h += '</tr><tr><td class="font-bold">Prazo</td>';
+  fornecedores.forEach(f=>h+=`<td class="text-center font-bold ${(f.prazo||0)===minP?'melhor-prazo':''}">${f.prazo||0} dias</td>`);
+  h += '</tr><tr><td class="font-bold">Pagamento</td>';
+  fornecedores.forEach(f=>h+=`<td class="text-center">${f.pgto||'—'}</td>`);
+  h += '</tr></tbody>';
+  tb.innerHTML = h;
+}
+function renderRanking(){
+  const r = ranking();
+  const min = r[0]._t.neg;
+  const tb = document.querySelector('#tabRanking tbody');
+  tb.innerHTML = r.map((f,i)=>`<tr class="${i===0?'recomendado':''} ${f.id==='inove'?'destaque-inove':''}">
+    <td class="font-extrabold text-xl">#${i+1}</td>
+    <td class="font-bold">${f.nome}</td>
+    <td class="text-right">${f.itens.length}</td>
+    <td class="text-right">${fmt(f._t.tab)}</td>
+    <td class="text-right font-extrabold">${fmt(f._t.neg)}</td>
+    <td class="text-right desconto-bom">${f._t.desc.toFixed(2)}%</td>
+    <td class="text-right ${i===0?'text-green-700 font-bold':'text-red-600'}">${i===0?'—':fmt(f._t.neg-min)+' ('+pct(f._t.neg,min).toFixed(2)+'%)'}</td>
+    <td class="text-right">${f.prazo||0}d</td>
+    <td>${f.pgto||'—'}</td></tr>`).join('');
+}
+
+/* ==================== ANÁLISE ==================== */
+function renderAnalise(){
+  const r = ranking();
+  $('mForn').textContent = fornecedores.length;
+  $('mMenor').textContent = fmt(r[0]._t.neg);
+  $('mMaior').textContent = fmt(r[r.length-1]._t.neg);
+  $('mEco').textContent = fmt(r[r.length-1]._t.neg - r[0]._t.neg);
+  $('simV').value = r[0]._t.neg.toFixed(2);
+  simular();
+}
+function simular(){
+  const v=parseFloat($('simV').value)||0, d=parseFloat($('simD').value)||0, j=parseFloat($('simJ').value)||0;
+  const vista=v*(1-d/100), parc=n=>v*Math.pow(1+j/100,n)/n;
+  const op=[['À Vista',fmt(vista),`-${d}% desc`],['3x s/j',fmt(v/3),fmt(v)],['6x s/j',fmt(v/6),fmt(v)],['12x c/j',fmt(parc(12)),`Total ${fmt(parc(12)*12)}`]];
+  $('simR').innerHTML = op.map(([t,v,s])=>`<div class="p-4 bg-slate-50 rounded-lg border"><div class="text-xs font-bold text-slate-500 uppercase">${t}</div><div class="text-xl font-extrabold text-primary-900 mt-1">${v}</div><div class="text-xs text-slate-600 mt-1">${s}</div></div>`).join('');
+}
+
+/* ==================== DASHBOARD ==================== */
+function renderDash(){
+  const r = ranking();
+  const lbl = r.map(f=>f.nome.length>20?f.nome.slice(0,20)+'…':f.nome);
+  const neg = r.map(f=>f._t.neg), tab = r.map(f=>f._t.tab), prazos = r.map(f=>f.prazo||0);
+  const cores = ['#16a34a','#2563eb','#ca8a04','#dc2626','#7c3aed','#0891b2'];
+
+  ch1 = echarts.init($('ch1'));
+  ch1.setOption({
+    backgroundColor:'transparent', tooltip:{trigger:'axis',valueFormatter:fmt},
+    grid:{left:80,right:30,bottom:80,top:20},
+    xAxis:{type:'category',data:lbl,axisLabel:{rotate:30,color:'#64748b'}},
+    yAxis:{type:'value',axisLabel:{color:'#64748b',formatter:v=>'R$ '+(v/1000).toFixed(0)+'k'}},
+    series:[{type:'bar',data:neg.map((v,i)=>({value:v,itemStyle:{color:cores[i%cores.length],borderRadius:[8,8,0,0]}})),
+      label:{show:true,position:'top',formatter:p=>fmt(p.value),fontSize:10,fontWeight:'bold'},barWidth:'55%'}]
+  });
+
+  ch2 = echarts.init($('ch2'));
+  ch2.setOption({
+    backgroundColor:'transparent', tooltip:{trigger:'axis',valueFormatter:v=>v+' dias'},
+    grid:{left:60,right:30,bottom:80,top:20},
+    xAxis:{type:'category',data:lbl,axisLabel:{rotate:30,color:'#64748b'}},
+    yAxis:{type:'value',axisLabel:{color:'#64748b',formatter:v=>v+'d'}},
+    series:[{type:'line',data:prazos,smooth:true,symbolSize:12,lineStyle:{width:3,color:'#ca8a04'},itemStyle:{color:'#ca8a04'},areaStyle:{color:'rgba(202,138,4,.2)'}}]
+  });
+
+  // Pizza INOVE
+  const inove = fornecedores.find(f=>f.id==='inove');
+  const g = {}; inove.itens.forEach(i=>{if(!g[i.comodo])g[i.comodo]=0; g[i.comodo]+=i.qtd*i.neg+(i.frete||0);});
+  const pizza = Object.entries(g).map(([k,v])=>({name:k.length>24?k.slice(0,24)+'…':k, value:v}));
+  ch3 = echarts.init($('ch3'));
+  ch3.setOption({
+    backgroundColor:'transparent', tooltip:{trigger:'item',formatter:p=>`${p.marker}${p.name}<br/>${fmt(p.value)} (${p.percent}%)`},
+    legend:{bottom:0,type:'scroll'},
+    series:[{type:'pie',radius:['38%','68%'],label:{formatter:'{b}\n{d}%'},
+      data: pizza.map((d,i)=>({...d,itemStyle:{color:cores[i%cores.length]}}))}]
+  });
+  window.onresize=()=>[ch1,ch2,ch3].forEach(c=>c&&c.resize());
+}
+
+/* ==================== APROVAÇÃO ==================== */
+function carregarAp(){
+  $('apForn').innerHTML = fornecedores.map(f=>`<option value="${f.id}">${f.nome} · ${fmt(totForn(f).neg)}</option>`).join('');
+  if(aprovacao.fornId) $('apForn').value = aprovacao.fornId; else $('apForn').value = 'inove';
+  $('apSol').value=aprovacao.sol||''; $('apAprov').value=aprovacao.aprov||'';
+  $('apData').value=aprovacao.data||''; $('apVal').value=aprovacao.val||15;
+  $('apSt').value=aprovacao.st||'Aguardando'; $('apObs').value=aprovacao.obs||'';
+  resumoAp();
+}
+function salvarAp(){
+  aprovacao={fornId:$('apForn').value,sol:$('apSol').value,aprov:$('apAprov').value,
+    data:$('apData').value,val:parseInt($('apVal').value)||15,st:$('apSt').value,obs:$('apObs').value};
+  localStorage.setItem(LS_AP,JSON.stringify(aprovacao)); resumoAp(); alert('Salvo!');
+}
+function resumoAp(){
+  const a=aprovacao, f=fornecedores.find(x=>x.id===a.fornId);
+  const st=a.st==='Aprovado'?'status-aprovado':a.st==='Reprovado'?'status-reprovado':'status-aguardando';
+  $('apResumo').innerHTML = (!f&&!a.sol)?'<p class="text-sm text-slate-500">Preencha acima</p>':`
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+      <div><b>Fornecedor:</b> ${f?.nome||'—'}</div>
+      <div><b>Valor:</b> ${f?fmt(totForn(f).neg):'—'}</div>
+      <div><b>Status:</b> <span class="pill ${st}">${a.st||'—'}</span></div>
+      <div><b>Solicitante:</b> ${a.sol||'—'}</div>
+      <div><b>Aprovador:</b> ${a.aprov||'—'}</div>
+      <div><b>Data:</b> ${(a.data||'').split('-').reverse().join('/')||'—'}</div>
+    </div>`;
+}
+
+/* ==================== RESULTADO ==================== */
+function renderResultado(){
+  const r = ranking();
+  const pgRank = {'À Vista':10,'2x sem juros':9,'3x sem juros':8,'4x sem juros':8,'5x sem juros':7,'6x sem juros':7,'10x sem juros':6,'12x com juros':3};
+  const fPreco = r[0];
+  const fPrazo = fornecedores.reduce((a,b)=>(b.prazo||9999)<(a.prazo||9999)?b:a);
+  const fPgto  = fornecedores.reduce((a,b)=>(pgRank[b.pgto]||0)>(pgRank[a.pgto]||0)?b:a);
+  const maxT = Math.max(...r.map(x=>x._t.neg));
+  const maxP = Math.max(...fornecedores.map(x=>x.prazo||1));
+  let rec=null, mx=0;
+  fornecedores.forEach(f=>{
+    const t = totForn(f).neg;
+    const nota = (1-t/maxT)*60 + (1-(f.prazo||0)/maxP)*25 + ((pgRank[f.pgto]||0)/10)*15;
+    if(nota>mx){mx=nota; rec={...f, nota:nota.toFixed(1)};}
+  });
+  $('rPreco').textContent=fPreco.nome; $('rPrecoV').textContent=fmt(fPreco._t.neg);
+  $('rPrazo').textContent=fPrazo.nome; $('rPrazoV').textContent=(fPrazo.prazo||0)+' dias';
+  $('rPgto').textContent=fPgto.pgto||'—'; $('rPgtoV').textContent=fPgto.nome;
+  $('rRec').textContent=rec.nome; $('rRecV').textContent=`${fmt(totForn(rec).neg)} · Nota ${rec.nota}/100`;
+
+  $('rel').innerHTML = `
+    <p><b>📅 Emissão:</b> ${new Date().toLocaleString('pt-BR')}</p>
+    <p><b>🏢 Empresas analisadas:</b> ${fornecedores.length}</p>
+    <div class="p-3 bg-green-50 border border-green-200 rounded-lg my-3">
+      <b>✅ INOVE MÓVEIS:</b> Tabela ${fmt(105376.00)} → <b class="text-green-700">Negociado ${fmt(84300.80)}</b> · Economia <b>R$ 21.075,20 (20% OFF geral)</b>
+    </div>
+    <hr class="my-3">
+    <p class="font-semibold text-primary-900">Ranking final:</p>
+    <ol class="list-decimal ml-5 space-y-1">${r.map((f,i)=>`<li><b>${f.nome}</b>: ${fmt(f._t.neg)} · ${f._t.desc.toFixed(2)}% OFF · ${f.prazo||0} dias · ${f.pgto||'—'}</li>`).join('')}</ol>
+    <hr class="my-3">
+    <p><b>🏆 Melhor preço:</b> ${fPreco.nome} (${fmt(fPreco._t.neg)})</p>
+    <p><b>⚡ Melhor prazo:</b> ${fPrazo.nome} (${fPrazo.prazo||0} dias)</p>
+    <p><b>💳 Melhor pagamento:</b> ${fPgto.nome} (${fPgto.pgto})</p>
+    <p class="mt-2 p-3 bg-primary-50 rounded-lg border border-primary-200"><b>✅ RECOMENDAÇÃO:</b> <span class="text-primary-900 font-extrabold text-lg">${rec.nome}</span> · Nota ${rec.nota}/100 (preço 60% + prazo 25% + pagamento 15%)</p>
+    <p><b>💰 Economia máxima:</b> ${fmt(r[r.length-1]._t.neg - r[0]._t.neg)}</p>
+  `;
+}
+
+/* ==================== EXPORTAÇÃO ==================== */
+function exportExcel(){
+  const wb = XLSX.utils.book_new();
+  const r = ranking().map((f,i)=>({Posição:'#'+(i+1),Empresa:f.nome,Itens:f.itens.length,'Tabela':totForn(f).tab,'Negociado':totForn(f).neg,'Desc %':totForn(f).desc.toFixed(2),Prazo:(f.prazo||0)+'d',Pagamento:f.pgto}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(r), 'Ranking');
+  fornecedores.forEach(f=>{
+    const d=[]; let gT=0,gN=0; const gg={}; f.itens.forEach(i=>{if(!gg[i.comodo])gg[i.comodo]=[];gg[i.comodo].push(i);});
+    Object.entries(gg).forEach(([c,arr])=>{let sT=0,sN=0; d.push({Cômodo:c});
+      arr.forEach(i=>{const tT=i.qtd*i.tab,tN=i.qtd*i.neg+(i.frete||0);sT+=tT;sN+=tN;gT+=tT;gN+=tN;
+        d.push({Cômodo:'·',Item:i.desc,Qtd:i.qtd,Tabela:i.tab,Negociado:i.neg,'Desc %':(i.tab>0?(1-i.neg/i.tab)*100:0).toFixed(2),Frete:i.frete,Total:tN,Prazo:f.prazo,Pagamento:f.pgto});});
+      d.push({Cômodo:'→ Subtotal '+c,'Total Tabela':sT,'Total Neg.':sN});});
+    d.push({Cômodo:'💰 TOTAL '+f.nome,'Total Tabela':gT,'Total Neg.':gN,'Desc %':(gT>0?(1-gN/gT)*100:0).toFixed(2)+'% OFF'});
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(d), f.nome.slice(0,28).replace(/[\\/?*\[\]:]/g,'_'));
+  });
+  XLSX.writeFile(wb, `Inove_Moveis_Comparativo_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function exportPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('l','mm','a4');
+  doc.setFontSize(17); doc.setTextColor(30,64,175);
+  doc.text('Comparativo · Inove Móveis',14,14);
+  doc.setFontSize(9); doc.setTextColor(80);
+  doc.text(`Emissão: ${new Date().toLocaleString('pt-BR')}`,14,20);
+  const r = ranking();
+  doc.setFontSize(11); doc.setTextColor(0);
+  doc.text(`Inove: ${fmt(84300.80)} · 20% OFF · Economia ${fmt(21075.20)}`,14,28);
+  const body = r.map((f,i)=>['#'+(i+1),f.nome.slice(0,26),f.itens.length,fmt(totForn(f).tab),fmt(totForn(f).neg),totForn(f).desc.toFixed(2)+'%',(f.prazo||0)+'d',f.pgto||'']);
+  doc.autoTable({startY:34,head:[['#','Empresa','Itens','Tabela','Negociado','Desc %','Prazo','Pgto']],body,theme:'grid',styles:{fontSize:8},headStyles:{fillColor:[30,64,175],textColor:255},
+    didDrawCell:(d)=>{ if(d.section==='body' && d.row.raw && String(d.row.raw[1]).includes('INOVE')) d.cell.styles.fillColor = [219,234,254]; }
+  });
+  doc.save(`Inove_Moveis_Orcamento_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+/* ==================== IMPRESSÃO ESPECÍFICA (NOVO) ==================== */
+function imprimirOrcamento() {
+  const f = fornecedores.find(x => x.id === fornAtual);
+  if(!f) { alert('Selecione um fornecedor primeiro.'); return; }
+  
+  const t = totForn(f);
+  const dataEmissao = new Date().toLocaleDateString('pt-BR');
+  
+  const g = {}; 
+  f.itens.forEach(i => { if(!g[i.comodo]) g[i.comodo]=[]; g[i.comodo].push(i); });
+  
+  let html = `
+    <div style="padding: 40px; font-family: sans-serif; color: #000;">
+      <div style="border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+          <h2 style="font-size: 24px; font-weight: 800; margin: 0; text-transform: uppercase;">${f.nome}</h2>
+          <p style="margin: 4px 0 0 0; font-size: 14px; color: #555;">CNPJ: ${f.cnpj || 'Não informado'}</p>
+        </div>
+        <div style="text-align: right; font-size: 12px; color: #555;">
+          Data de Impressão: ${dataEmissao}
+        </div>
+      </div>
+      
+      <h3 style="font-size: 16px; font-weight: bold; border-left: 4px solid #000; padding-left: 8px; margin-bottom: 15px;">Relação de Itens / Cômodos</h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 30px;">
+        <thead>
+          <tr style="border-bottom: 2px solid #000;">
+            <th style="text-align: left; padding: 8px 4px;">Descrição do Ambiente / Produto</th>
+            <th style="text-align: right; padding: 8px 4px;">Valor Negociado (R$)</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+  
+  Object.entries(g).forEach(([comodo, arr]) => {
+      html += `<tr><td colspan="2" style="font-weight: bold; background-color: #f3f4f6; padding: 6px 4px; border-bottom: 1px solid #e5e7eb; margin-top: 5px;">${comodo}</td></tr>`;
+      arr.forEach(i => {
+          const tN = i.qtd * i.neg + (i.frete||0);
+          html += `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+              <td style="padding: 6px 4px 6px 12px;">${i.desc} <span style="color:#666; font-size:10px;">(Qtd: ${i.qtd})</span></td>
+              <td style="text-align: right; padding: 6px 4px;">${fmt(tN)}</td>
+            </tr>`;
+      });
+  });
+  
+  html += `
+        </tbody>
+        <tfoot style="border-top: 2px solid #000;">
+          <tr>
+            <td style="text-align: right; font-weight: bold; padding: 12px 4px; font-size: 11px;">SUBTOTAL TABELA:</td>
+            <td style="text-align: right; padding: 12px 4px; color: #666; text-decoration: line-through;">${fmt(t.tab)}</td>
+          </tr>
+          <tr>
+            <td style="text-align: right; font-weight: bold; padding: 4px 4px 12px 4px; font-size: 14px;">CUSTO TOTAL FINAL (NEGOCIADO):</td>
+            <td style="text-align: right; font-weight: bold; padding: 4px 4px 12px 4px; font-size: 16px;">${fmt(t.neg)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      
+      <h3 style="font-size: 16px; font-weight: bold; border-left: 4px solid #000; padding-left: 8px; margin-bottom: 15px;">Condições Comerciais</h3>
+      <div style="border: 1px solid #d1d5db; border-radius: 6px; padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 12px;">
+        <div>
+          <p style="margin:0; font-size:10px; font-weight:bold; color:#6b7280; text-transform:uppercase;">Prazo de Entrega</p>
+          <p style="margin:4px 0 0 0; font-weight:500;">${f.prazo || 0} dias</p>
+        </div>
+        <div>
+          <p style="margin:0; font-size:10px; font-weight:bold; color:#6b7280; text-transform:uppercase;">Forma de Pagamento</p>
+          <p style="margin:4px 0 0 0; font-weight:500;">${f.pgto || 'Não informada'}</p>
+        </div>
+        <div style="grid-column: span 2; border-top: 1px solid #e5e7eb; padding-top: 10px;">
+          <p style="margin:0; font-size:10px; font-weight:bold; color:#6b7280; text-transform:uppercase;">Dados de Contato</p>
+          <p style="margin:4px 0 0 0;">👤 ${f.contato || '-'} &nbsp;&nbsp;|&nbsp;&nbsp; 📞 ${f.tel || '-'} &nbsp;&nbsp;|&nbsp;&nbsp; ✉️ ${f.email || '-'}</p>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const printArea = document.getElementById('printArea');
+  printArea.innerHTML = html;
+  
+  document.body.classList.add('is-printing-custom');
+  window.print();
+  setTimeout(() => document.body.classList.remove('is-printing-custom'), 500);
+}
+
+function imprimirComparativo() {
+  const dataEmissao = new Date().toLocaleDateString('pt-BR');
+  
+  let html = `
+    <div style="padding: 20px; font-family: sans-serif; color: #000;">
+      <div style="border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+          <h2 style="font-size: 20px; font-weight: 800; margin: 0; text-transform: uppercase;">Mapa Comparativo de Orçamentos</h2>
+          <p style="margin: 4px 0 0 0; font-size: 12px; color: #555;">Análise de concorrência e valores por ambiente</p>
+        </div>
+        <div style="text-align: right; font-size: 11px; color: #555;">
+          Impressão: ${dataEmissao}
+        </div>
+      </div>
+      
+      <div style="font-size: 11px;">
+        ${document.getElementById('tabCompara').outerHTML}
+      </div>
+      
+      <div style="margin-top: 30px; font-size: 10px; color: #666; text-align: center;">
+        <p>Valores destacados em verde representam o menor custo encontrado para aquele respectivo ambiente/cômodo.</p>
+      </div>
+    </div>
+  `;
+  
+  const printArea = document.getElementById('printArea');
+  printArea.innerHTML = html;
+  
+  document.body.classList.add('is-printing-custom');
+  window.print();
+  setTimeout(() => document.body.classList.remove('is-printing-custom'), 500);
+}
+
+/* ==================== INIT ==================== */
+renderFornecedores();
+</script>
+</body>
+</html>
