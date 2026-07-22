@@ -9,7 +9,6 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-<!-- IMPORTAÇÃO DA BIBLIOTECA DO SUPABASE (BANCO DE DADOS EM NUVEM) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -131,7 +130,7 @@
       <button class="md:hidden btn btn-secondary" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
       <h2 id="pageTitle" class="text-xl font-bold hidden md:block">Dashboard</h2>
       <div class="flex items-center gap-2 ml-auto">
-        <span class="text-xs text-green-500 font-semibold"><i class="fas fa-cloud mr-1"></i> Conectado à Nuvem</span>
+        <span class="text-xs text-slate-500"><i class="fas fa-database mr-1"></i> Dados salvos localmente</span>
       </div>
     </header>
 
@@ -578,12 +577,7 @@ function salvarProduto(e) {
 function excluirProduto(id) {
   if (!confirm('Excluir produto e TODOS os seus orçamentos?')) return;
   produtos = produtos.filter(p => p.id !== id);
-  const orcsParaApagar = orcamentos.filter(o => o.produtoId === id);
   orcamentos = orcamentos.filter(o => o.produtoId !== id);
-  
-  excluirNaNuvem('produtos', id);
-  orcsParaApagar.forEach(o => excluirNaNuvem('orcamentos', o.id));
-  
   salvar(); 
   carregarSelProdOrc();
   carregarSelLojas();
@@ -732,7 +726,6 @@ function salvarOrcamento(e) {
 function excluirOrcamento(id) {
   if (!confirm('Excluir orçamento?')) return;
   orcamentos = orcamentos.filter(o => o.id !== id);
-  excluirNaNuvem('orcamentos', id);
   salvar(); 
   carregarSelLojas();
   refreshActivePage();
@@ -771,6 +764,7 @@ function renderOrcamentos() {
     const badge = rank === 1 ? '<span class="badge badge-best"><i class="fas fa-trophy mr-1"></i>1º</span>' :
                   rank === 2 ? '<span class="badge badge-second"><i class="fas fa-medal mr-1"></i>2º</span>' : `<span class="text-xs text-slate-400">${rank}º</span>`;
     
+    // Retirada a classe que deixava o texto fraco (text-slate-600 e dark:text-slate-300)
     return `<tr class="${rank===1?'best':rank===2?'second':''}">
       <td class="font-semibold" title="${nomeProd}">${nomeProd.length > 25 ? nomeProd.substring(0, 25) + '...' : nomeProd}</td>
       <td class="font-semibold">${o.loja}</td>
@@ -1066,8 +1060,6 @@ function loadDemo() {
 
 function clearAll() {
   if (!confirm('Apagar TODOS os produtos e orçamentos? Essa ação não pode ser desfeita.')) return;
-  produtos.forEach(p => excluirNaNuvem('produtos', p.id));
-  orcamentos.forEach(o => excluirNaNuvem('orcamentos', o.id));
   produtos = []; orcamentos = []; salvar();
   carregarSelProdOrc(); 
   carregarSelLojas();
@@ -1075,8 +1067,9 @@ function clearAll() {
 }
 
 // ============ INICIALIZAÇÃO ============
-// Inicia buscando da nuvem e carregando a tela
-iniciarNuvem();
+carregarSelProdOrc();
+carregarSelLojas();
+refreshActivePage();
 </script>
 </body>
 </html>
