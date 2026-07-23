@@ -9,6 +9,10 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<<<<<<< HEAD
+=======
+<!-- BIBLIOTECA DO SUPABASE -->
+>>>>>>> 1f9a0f3 (Versao funcional com nuvem integrada)
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -130,7 +134,11 @@
       <button class="md:hidden btn btn-secondary" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
       <h2 id="pageTitle" class="text-xl font-bold hidden md:block">Dashboard</h2>
       <div class="flex items-center gap-2 ml-auto">
+<<<<<<< HEAD
         <span class="text-xs text-slate-500"><i class="fas fa-database mr-1"></i> Dados salvos localmente</span>
+=======
+        <span class="text-xs text-green-600 font-semibold"><i class="fas fa-cloud mr-1"></i> Conectado à Nuvem</span>
+>>>>>>> 1f9a0f3 (Versao funcional com nuvem integrada)
       </div>
     </header>
 
@@ -401,37 +409,30 @@
 </div>
 
 <script>
-// ============ DADOS & NUVEM ============
+// ============ DADOS & NUVEM (SUPABASE) ============
 const supabaseUrl = 'https://ynlzluoejjrofaxecudn.supabase.co';
-// ATENÇÃO: Cole a chave "anon public" exatamente no lugar do texto abaixo, mantendo as aspas.
-const supabaseKey = 'COLE_AQUI_A_CHAVE_QUE_VOCE_COPIOU'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlubmxsdW9lampyb2ZheGVjdWRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzNTQ5OTEsImV4cCI6MjA1NTkzMDk5MX0.4DVmJL-oeiefDbpuIVyBw_vgWKA603-9Y8K0c0i1-2I'; 
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-// Mantemos o localStorage como Cache para a interface não perder velocidade
 let produtos = JSON.parse(localStorage.getItem('orcamax_produtos') || '[]');
 let orcamentos = JSON.parse(localStorage.getItem('orcamax_orcamentos') || '[]');
 
-// Atualização da função salvar para espelhar os dados na nuvem
 async function salvar() {
-  // Salva no navegador (mantém a performance da sua aplicação atual)
   localStorage.setItem('orcamax_produtos', JSON.stringify(produtos));
   localStorage.setItem('orcamax_orcamentos', JSON.stringify(orcamentos));
   
-  // Backups automáticos: Envia os dados para o Supabase (Upsert: insere ou atualiza)
   if(produtos.length > 0) await supabase.from('produtos').upsert(produtos);
   if(orcamentos.length > 0) await supabase.from('orcamentos').upsert(orcamentos);
 }
 
-// Função utilitária para excluir também da nuvem
 async function excluirNaNuvem(tabela, id) {
   try { await supabase.from(tabela).delete().eq('id', id); } catch (e) { console.error("Erro ao deletar na nuvem", e); }
 }
 
-// Inicializa a aplicação puxando o backup mais recente da nuvem
 async function iniciarNuvem() {
   try {
-    const { data: prodData, error: prodErr } = await supabase.from('produtos').select('*');
-    const { data: orcData, error: orcErr } = await supabase.from('orcamentos').select('*');
+    const { data: prodData } = await supabase.from('produtos').select('*');
+    const { data: orcData } = await supabase.from('orcamentos').select('*');
     
     if (prodData && prodData.length > 0) {
       produtos = prodData;
@@ -441,14 +442,12 @@ async function iniciarNuvem() {
       orcamentos = orcData;
       localStorage.setItem('orcamax_orcamentos', JSON.stringify(orcamentos));
     }
-    
-    // Atualiza as tabelas e gráficos da sua interface
-    carregarSelProdOrc();
-    carregarSelLojas();
-    refreshActivePage();
   } catch (error) {
-    console.error("Erro ao conectar com o Supabase. Rodando localmente.", error);
+    console.error("Erro ao conectar com o Supabase. Mantendo dados locais.", error);
   }
+  carregarSelProdOrc();
+  carregarSelLojas();
+  refreshActivePage();
 }
 
 function moeda(v) {
@@ -633,6 +632,7 @@ function rankearOrcamentos(lista) {
 
 function carregarSelProdOrc() {
   const sel = document.getElementById('selProdutoOrc');
+  if(!sel) return;
   const atual = sel.value;
   sel.innerHTML = '<option value="">Todos os produtos</option>' + produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
   if (atual && produtos.find(p => p.id === atual)) sel.value = atual;
@@ -640,6 +640,7 @@ function carregarSelProdOrc() {
 
 function carregarSelProdModal(selId) {
   const sel = document.getElementById(selId);
+  if(!sel) return;
   sel.innerHTML = produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
 }
 
@@ -652,7 +653,6 @@ function openModalOrcamento(id) {
   document.getElementById('tituloOrcamento').textContent = isEdit ? 'Editar Orçamento' : 'Novo Orçamento';
   carregarSelProdModal('o-prod');
   
-  // Reset fields
   document.getElementById('o-id').value = '';
   document.getElementById('o-loja').value = '';
   document.getElementById('o-link').value = '';
@@ -796,6 +796,7 @@ function renderOrcamentos() {
 // ============ COMPARAÇÃO ============
 function carregarSelLojas() {
   const select = document.getElementById('filtroLoja');
+  if(!select) return;
   const atual = select.value;
   const lojas = [...new Set(orcamentos.map(o => o.loja))].sort();
   select.innerHTML = '<option value="">Todas</option>' + lojas.map(l => `<option value="${l}">${l}</option>`).join('');
@@ -883,6 +884,7 @@ function renderDashboard() {
   });
 
   const el1 = document.getElementById('chart1');
+  if(!el1) return;
   if (chart1) chart1.dispose();
   chart1 = echarts.init(el1);
   chart1.setOption({
@@ -901,6 +903,7 @@ function renderDashboard() {
   });
 
   const el2 = document.getElementById('chart2');
+  if(!el2) return;
   if (chart2) chart2.dispose();
   chart2 = echarts.init(el2);
   const pieData = Object.entries(catData).map(([name,value])=>({name, value}));
@@ -1075,9 +1078,13 @@ function clearAll() {
 }
 
 // ============ INICIALIZAÇÃO ============
+<<<<<<< HEAD
 carregarSelProdOrc();
 carregarSelLojas();
 refreshActivePage();
+=======
+iniciarNuvem();
+>>>>>>> 1f9a0f3 (Versao funcional com nuvem integrada)
 </script>
 </body>
 </html>
