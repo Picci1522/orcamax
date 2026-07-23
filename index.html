@@ -493,26 +493,34 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// ============ NAVEGAÇÃO ============
+// ============ NAVEGAÇÃO CORRIGIDA ============
 document.querySelectorAll('.nav-item[data-page]').forEach(el => {
-  el.onclick = () => {
+  el.onclick = (e) => {
+    e.preventDefault();
+    const targetPage = el.getAttribute('data-page');
+    if (!targetPage) return;
+
+    // Remove a classe active de todos os botões e esconde todas as páginas
     document.querySelectorAll('.nav-item[data-page]').forEach(n => n.classList.remove('active'));
-    el.classList.add('active');
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('page-' + el.dataset.page).classList.add('active');
-    document.getElementById('pageTitle').textContent = el.textContent.trim();
+
+    // Ativa o botão clicado e mostra a página correspondente
+    el.classList.add('active');
+    const pageEl = document.getElementById('page-' + targetPage);
+    if (pageEl) {
+      pageEl.classList.add('active');
+    }
+
+    // Atualiza o título da barra superior
+    const titleEl = document.getElementById('pageTitle');
+    if (titleEl) {
+      titleEl.textContent = el.textContent.trim();
+    }
+
     toggleSidebar(false);
     refreshActivePage();
   };
 });
-
-function toggleSidebar(force) {
-  const sb = document.getElementById('sidebar');
-  const ov = document.getElementById('overlay');
-  const open = force === undefined ? !sb.classList.contains('open') : force;
-  sb.classList.toggle('open', open);
-  ov.classList.toggle('hidden', !open);
-}
 
 // ============ TEMA ============
 let dark = localStorage.getItem('orcamax_tema') === '1';
